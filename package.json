@@ -4,7 +4,10 @@
   "description": "a bot to download resources from internet",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon src/index.ts",
+    "build": "npm run lint && rimraf dist/ && tsc",
+    "start": "npm run build && node dist/index.js",
+    "lint": "eslint src/**/*.ts"
   },
   "keywords": [
     "bot",

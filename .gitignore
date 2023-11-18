@@ -14,6 +14,7 @@ note
 
 # OS
 .DS_Store
+.env
 
 # Tests
 /coverage
