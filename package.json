@@ -1,0 +1,30 @@
+{
+  "name": "genter",
+  "version": "1.0.0",
+  "description": "a bot to download resources from internet",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "bot",
+    "telegram bot",
+    "telegram",
+    "download bot"
+  ],
+  "author": "John Mahalarang<johnmahalarang@gmail.com>",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^20.9.1",
+    "@typescript-eslint/eslint-plugin": "^6.11.0",
+    "@typescript-eslint/parser": "^6.11.0",
+    "eslint": "^8.54.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-prettier": "^5.0.1",
+    "nodemon": "^3.0.1",
+    "prettier": "^3.1.0",
+    "rimraf": "^5.0.5",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.2.2"
+  }
+}
