@@ -15,7 +15,8 @@
     "incremental": true,
     "declarationMap": true,
     "inlineSourceMap": true,
-    "inlineSources": true
+    "inlineSources": true,
+    "esModuleInterop": true
   },
   "include": ["src/*.ts"],
   "exclude": ["node_modules"]

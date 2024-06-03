@@ -5,15 +5,12 @@ module.exports = {
     sourceType: "module",
   },
   plugins: ["@typescript-eslint/eslint-plugin"],
-  extends: [
-    "plugin:@typescript-eslint/recommended",
-    "plugin:prettier/recommended",
-  ],
+  extends: ["plugin:@typescript-eslint/recommended", "plugin:prettier/recommended"],
   root: true,
   env: {
     node: true,
   },
-  ignorePatterns: [".eslintrc.js", "lib/**"],
+  ignorePatterns: [".eslintrc.js", "lib/**", "dist/**", "node_modules/**", "tsconfig.json"],
   rules: {
     "@typescript-eslint/interface-name-prefix": "off",
     "@typescript-eslint/explicit-function-return-type": "off",
