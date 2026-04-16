@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", system-ui, sans-serif;
+  --color-primary-500: oklch(0.65 0.25 250);
+  --color-primary-600: oklch(0.55 0.25 250);
+}
+
+@layer base {
+  body {
+    @apply antialiased tracking-tight;
+  }
+}
