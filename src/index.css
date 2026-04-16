@@ -1,13 +1,87 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:is(.dark *));
 @theme {
-  --font-sans: "Inter", system-ui, sans-serif;
-  --color-primary-500: oklch(0.65 0.25 250);
-  --color-primary-600: oklch(0.55 0.25 250);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  /* Primary Accent */
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+
+  /* Destructive Accent */
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-hover: var(--destructive-hover);
+  
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
 }
 
 @layer base {
+  :root {
+    /* Day Theme */
+    --background: #F1F0E4;
+    --foreground: #3E3F29;
+    --card: #faf9f4; /* A lighter cream to float above background */
+    --card-foreground: #3E3F29;
+    --border: #BCA88D;
+    --input: #BCA88D;
+    --ring: #7D8D86;
+    
+    --primary: #3E3F29;
+    --primary-foreground: #F1F0E4;
+    --primary-hover: #292a1b; /* Slightly darker shift for hover */
+    
+    --destructive: #dc2626; /* Kept standard red for distinct danger */
+    --destructive-foreground: #F1F0E4;
+    --destructive-hover: #b91c1c;
+    
+    --muted: #e5e3d2; /* Slightly darker cream for contrast */
+    --muted-foreground: #7D8D86;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* Dark Theme - Deepened for contrast */
+    --background: #11120c; /* Much darker olive near-black */
+    --foreground: #fdfcf8; /* Extra bright crisp white for eye-catchy text */
+    --card: #191a13; /* Slightly elevated dark olive for cards */
+    --card-foreground: #fdfcf8;
+    
+    --border: #3E3F29; /* Original olive drab serves as a subtle border now */
+    --input: #3E3F29;
+    --ring: #BCA88D;
+    
+    --primary: #BCA88D; /* Sand accent */
+    --primary-foreground: #11120c;
+    --primary-hover: #d1bda2; /* Lighter sand for hover state */
+    
+    --destructive: #991b1b;
+    --destructive-foreground: #fdfcf8;
+    --destructive-hover: #7f1d1d;
+    
+    --muted: #27281e; /* Elevated olive for muted regions */
+    --muted-foreground: #b2c2b9; /* Brightened sage for readable muted text */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
   body {
-    @apply antialiased tracking-tight;
+    @apply bg-background text-foreground antialiased tracking-tight;
   }
 }

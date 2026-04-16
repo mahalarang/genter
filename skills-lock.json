@@ -1,6 +1,11 @@
 {
   "version": 1,
   "skills": {
+    "colorize": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "computedHash": "4793ac377b2bc1a5831d9634ce882373350cc5d097fd631d192155266204ceb8"
+    },
     "frontend-design": {
       "source": "anthropics/skills",
       "sourceType": "github",
