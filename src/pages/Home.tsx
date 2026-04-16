@@ -8,9 +8,21 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import type { LinkItem, LinkStatus } from '@/lib/types';
 
 const Home: React.FC = () => {
-  const [links, setLinks] = useState<LinkItem[]>([
-    { id: 1, title: 'Sample Link', links: ['https://example.com'], source: 'Web', status: 'Downloaded' },
-  ]);
+  const [links, setLinks] = useState<LinkItem[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  React.useEffect(() => {
+    fetch('/api/links')
+      .then(res => res.json())
+      .then(data => {
+        setLinks(data);
+        setIsLoading(false);
+      })
+      .catch(err => {
+        console.error("Failed fetching links", err);
+        setIsLoading(false);
+      });
+  }, []);
 
   // Dialog States
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -45,28 +57,41 @@ const Home: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Basic validation
     if (!formTitle || formLinks.filter(l => l.trim()).length === 0) return;
 
+    const payload = {
+      title: formTitle,
+      links: formLinks.filter(l => l.trim()),
+      source: formSource,
+      status: formStatus
+    };
+
     if (editingId) {
-      setLinks(links.map(l => l.id === editingId ? {
-        ...l, title: formTitle, links: formLinks.filter(l => l.trim()), source: formSource, status: formStatus
-      } : l));
+      // PUT request
+      await fetch(`/api/links/${editingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      setLinks(links.map(l => l.id === editingId ? { ...l, ...payload } : l));
     } else {
-      setLinks([...links, {
-        id: Date.now(),
-        title: formTitle,
-        links: formLinks.filter(l => l.trim()),
-        source: formSource,
-        status: formStatus
-      }]);
+      // POST request
+      const res = await fetch('/api/links', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const newItem = await res.json();
+      setLinks([...links, newItem]);
     }
     setIsFormOpen(false);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (editingId) {
+      await fetch(`/api/links/${editingId}`, { method: 'DELETE' });
       setLinks(links.filter(l => l.id !== editingId));
     }
     setIsDeleteOpen(false);
@@ -117,7 +142,13 @@ const Home: React.FC = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {links.length === 0 ? (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground animate-pulse">
+                    Memuat data...
+                  </TableCell>
+                </TableRow>
+              ) : links.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                     Tidak ada link. Klik "Add Link" untuk menambahkan.

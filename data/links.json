@@ -1,0 +1,12 @@
+[
+  {
+    "id": 1,
+    "title": "Welcome to Antigravity Links",
+    "links": [
+      "https://example.com/getting-started",
+      "https://example.com/documentation"
+    ],
+    "source": "System API",
+    "status": "Downloaded"
+  }
+]
