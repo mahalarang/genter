@@ -1,35 +1,43 @@
 {
   "name": "genter",
   "version": "1.0.0",
-  "description": "a bot to download resources from internet",
+  "description": "All tools you need, i provide it",
   "main": "src/main.js",
   "scripts": {
-    "dev": "nodemon src/main.ts",
-    "build": "pnpm run lint && rimraf dist/ && tsc",
-    "lint": "eslint src/**/*.ts"
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint src/**/*.{ts,tsx}"
   },
-  "keywords": [
-    "bot",
-    "telegram bot",
-    "telegram",
-    "download bot"
-  ],
+  "keywords": [],
   "author": "John Mahalarang<johnmahalarang@gmail.com>",
   "license": "ISC",
   "devDependencies": {
+    "@tailwindcss/vite": "^4.2.2",
     "@types/node": "^20.9.1",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "@typescript-eslint/eslint-plugin": "^6.11.0",
     "@typescript-eslint/parser": "^6.11.0",
+    "@vitejs/plugin-react": "^6.0.1",
     "eslint": "^8.54.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-prettier": "^5.0.1",
     "nodemon": "^3.0.1",
     "prettier": "^3.1.0",
     "rimraf": "^5.0.5",
+    "tailwindcss": "^4.2.2",
     "ts-node": "^10.9.1",
-    "typescript": "^5.2.2"
+    "typescript": "^5.2.2",
+    "vite": "^8.0.8"
   },
   "dependencies": {
-    "dotenv": "^16.4.5"
+    "clsx": "^2.1.1",
+    "dotenv": "^16.4.5",
+    "lucide-react": "^1.8.0",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "react-router-dom": "^7.14.1",
+    "tailwind-merge": "^3.5.0"
   }
 }
