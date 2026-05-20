@@ -7,3 +7,11 @@ export interface LinkItem {
   source: string;
   status: LinkStatus;
 }
+
+export interface TextItem {
+  id: number;
+  title: string;
+  content: string;
+  name: string;
+  timestamp: string;
+}
