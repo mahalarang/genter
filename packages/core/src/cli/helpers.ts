@@ -10,8 +10,9 @@ export function guessFilename(url: string): string {
     const last = pathname.split('/').filter(Boolean).pop();
     if (last) {
       const videoExts = ['.mp4', '.m3u8', '.webm', '.mkv', '.ts', '.mov'];
-      return videoExts.some(ext => last.toLowerCase().endsWith(ext))
-        ? last
+      const hasExt = videoExts.some(ext => last.toLowerCase().endsWith(ext));
+      return hasExt
+        ? last.slice(0, -videoExts.find(e => last.toLowerCase().endsWith(e))!.length) + '.mp4'
         : last + '.mp4';
     }
   } catch {

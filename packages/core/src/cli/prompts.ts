@@ -25,10 +25,11 @@ export async function resolveOutputPath(
     default: defaultName,
   });
 
-  // Ensure filename has a video extension.
+  // Normalize: strip existing video extension, re-add .mp4.
   const videoExts = ['.mp4', '.m3u8', '.webm', '.mkv', '.ts', '.mov'];
-  const finalName = videoExts.some(ext => name.toLowerCase().endsWith(ext))
-    ? name
+  const hasExt = videoExts.some(ext => name.toLowerCase().endsWith(ext));
+  const finalName = hasExt
+    ? name.slice(0, -videoExts.find(e => name.toLowerCase().endsWith(e))!.length) + '.mp4'
     : name + '.mp4';
 
   if (outputDir) {
