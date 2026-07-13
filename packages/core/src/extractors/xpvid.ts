@@ -73,9 +73,10 @@ export class XpvidExtractor implements Extractor {
         String.fromCharCode(parseInt(h, 16)),
       );
 
-    // Ensure filename has an extension.
+    // Ensure filename has a video extension.
     let filename = title || id + '.mp4';
-    if (!filename.includes('.')) {
+    const videoExts = ['.mp4', '.m3u8', '.webm', '.mkv', '.ts', '.mov'];
+    if (!videoExts.some(ext => filename.toLowerCase().endsWith(ext))) {
       filename += '.mp4';
     }
 

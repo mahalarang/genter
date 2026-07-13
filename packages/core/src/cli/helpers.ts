@@ -2,13 +2,18 @@ import { resolve } from 'node:path';
 import { stat } from 'node:fs/promises';
 
 /**
- * Guess a filename from a URL.
+ * Guess a filename from a URL. Adds .mp4 if no video extension.
  */
 export function guessFilename(url: string): string {
   try {
     const pathname = new URL(url).pathname;
     const last = pathname.split('/').filter(Boolean).pop();
-    if (last) return last + '.mp4';
+    if (last) {
+      const videoExts = ['.mp4', '.m3u8', '.webm', '.mkv', '.ts', '.mov'];
+      return videoExts.some(ext => last.toLowerCase().endsWith(ext))
+        ? last
+        : last + '.mp4';
+    }
   } catch {
     // not a valid URL
   }

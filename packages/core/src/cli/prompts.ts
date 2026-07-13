@@ -25,11 +25,17 @@ export async function resolveOutputPath(
     default: defaultName,
   });
 
+  // Ensure filename has a video extension.
+  const videoExts = ['.mp4', '.m3u8', '.webm', '.mkv', '.ts', '.mov'];
+  const finalName = videoExts.some(ext => name.toLowerCase().endsWith(ext))
+    ? name
+    : name + '.mp4';
+
   if (outputDir) {
-    return resolve(process.cwd(), outputDir, name);
+    return resolve(process.cwd(), outputDir, finalName);
   }
 
-  return resolve(process.cwd(), name);
+  return resolve(process.cwd(), finalName);
 }
 
 /**
