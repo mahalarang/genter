@@ -24,7 +24,7 @@ import { resolveOutputPath, checkExistingFile } from './cli/prompts.js';
 const program = new Command();
 
 program
-  .name('donlod')
+  .name('genter')
   .description('Download streaming videos from supported sites')
   .argument('[url]', 'URL of the video page to download')
   .option('-o, --output <path>', 'Output file path (overrides automatic naming)')

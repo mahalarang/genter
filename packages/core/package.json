@@ -1,5 +1,5 @@
 {
-  "name": "@donlod/core",
+  "name": "@genter/core",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -16,7 +16,7 @@
     }
   },
   "bin": {
-    "donlod": "./dist/cli.js"
+    "genter": "./dist/cli.js"
   },
   "scripts": {
     "build": "tsc",

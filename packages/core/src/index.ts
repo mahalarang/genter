@@ -1,7 +1,7 @@
-// @donlod/core — video downloader core library (browser-safe)
+// @genter/core — video downloader core library (browser-safe)
 //
 // For Node.js-specific exports (NodeFileWriter, TwitterExtractor),
-// import from '@donlod/core/node'.
+// import from '@genter/core/node'.
 
 export { VERSION } from './version.js';
 export type { Extractor, ExtractResult } from './extractor.js';

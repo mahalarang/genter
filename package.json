@@ -1,5 +1,5 @@
 {
-  "name": "donlod",
+  "name": "genter",
   "private": true,
   "scripts": {
     "build": "pnpm --recursive build",
