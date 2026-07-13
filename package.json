@@ -1,24 +1,14 @@
 {
-  "name": "genter",
-  "version": "0.1.0",
+  "name": "donlod",
   "private": true,
-  "type": "module",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "eta": "^3.5.0",
-    "express": "^5.1.0",
-    "ffmpeg-static": "^5.2.0",
-    "ytdlp-nodejs": "^3.4.4"
+    "build": "pnpm --recursive build",
+    "test": "pnpm --recursive test",
+    "lint": "pnpm --recursive lint",
+    "typecheck": "pnpm --recursive typecheck",
+    "clean": "pnpm --recursive clean"
   },
   "devDependencies": {
-    "@types/express": "^5.0.3",
-    "@types/node": "^22.15.0",
-    "tsx": "^4.19.0",
     "typescript": "^5.8.0"
   }
 }
