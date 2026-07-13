@@ -160,6 +160,7 @@ program
 
             await new Promise<void>((resolve, reject) => {
               const ffmpeg = spawn(ffmpegPath, [
+                '-y',                           // force overwrite
                 '-hide_banner', '-loglevel', 'error',
                 '-headers', ffHeaders,
                 '-i', videoUrl,
