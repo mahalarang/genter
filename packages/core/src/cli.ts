@@ -151,14 +151,12 @@ program
           } else {
             // Non-Twitter: use ffmpeg directly (sends Referer, no 403).
             const { spawn } = await import('node:child_process');
-            const { createWriteStream } = await import('node:fs');
             const referer = guessReferer(url);
             const ffHeaders =
               `Referer: ${referer}\r\n` +
               'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36\r\n';
 
             const ffmpegPath = await resolveFfmpegPath();
-            const ws = createWriteStream(outputPath);
 
             await new Promise<void>((resolve, reject) => {
               const ffmpeg = spawn(ffmpegPath, [
@@ -170,11 +168,14 @@ program
                 '-f', 'mp4',
                 '-movflags', 'frag_keyframe+empty_moov',
                 outputPath,
-              ], { stdio: 'ignore' });
+              ], { stdio: ['ignore', 'ignore', 'pipe'] });
+
+              let stderr = '';
+              ffmpeg.stderr.on('data', (d: Buffer) => { stderr += d.toString(); });
 
               ffmpeg.on('exit', (code) => {
                 if (code === 0) resolve();
-                else reject(new Error(`ffmpeg exited with code ${code}`));
+                else reject(new Error(`ffmpeg: ${stderr.trim() || `exited with code ${code}`}`));
               });
               ffmpeg.on('error', reject);
             });
