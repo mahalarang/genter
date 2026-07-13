@@ -124,42 +124,60 @@ program
         // Check if file already exists.
         outputPath = await checkExistingFile(outputPath);
 
-        // HLS playlist detected — use yt-dlp to download & merge segments.
+        // HLS playlist detected.
         if (videoUrl.endsWith('.m3u8') || videoUrl.endsWith('.m3u')) {
-          // Reuse the existing spinner instance to avoid ora's concurrent-spinner warning.
           spinner.stop();
           spinner.text = 'Downloading HLS stream...';
           spinner.start();
 
-          const { YtDlp } = await import('ytdlp-nodejs');
-          const ytdlp = new YtDlp({
-            ffmpegPath: await resolveFfmpegPath(),
-          });
-          const streamOpts: Record<string, unknown> = {};
-
-          if (options.cookiesFromBrowser) {
-            streamOpts.cookiesFromBrowser = options.cookiesFromBrowser;
-          }
-          if (cookiesFile) {
-            streamOpts.cookies = cookiesFile;
-          }
-
-          // For Twitter, use the original tweet URL so yt-dlp can handle auth + merge.
-          // For other sites (xpvid.cc), stream the raw .m3u8 URL directly.
-          const streamUrl = isTwitterUrl(url) ? url : videoUrl;
-          const { createWriteStream } = await import('node:fs');
-          const ws = createWriteStream(outputPath);
-          const stream = ytdlp.stream(streamUrl, streamOpts);
-
           if (isTwitterUrl(url)) {
-            await stream
+            // Twitter: use yt-dlp for auth + merge.
+            const { YtDlp } = await import('ytdlp-nodejs');
+            const ytdlp = new YtDlp({
+              ffmpegPath: await resolveFfmpegPath(),
+            });
+            const streamOpts: Record<string, unknown> = {};
+            if (options.cookiesFromBrowser) streamOpts.cookiesFromBrowser = options.cookiesFromBrowser;
+            if (cookiesFile) streamOpts.cookies = cookiesFile;
+
+            const { createWriteStream } = await import('node:fs');
+            const ws = createWriteStream(outputPath);
+            await ytdlp.stream(url, streamOpts)
               .filter('mergevideo')
               .quality('highest')
               .type('mp4')
               .embedThumbnail()
               .pipeAsync(ws);
           } else {
-            await stream.pipeAsync(ws);
+            // Non-Twitter: use ffmpeg directly (sends Referer, no 403).
+            const { spawn } = await import('node:child_process');
+            const { createWriteStream } = await import('node:fs');
+            const referer = guessReferer(url);
+            const ffHeaders =
+              `Referer: ${referer}\r\n` +
+              'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36\r\n';
+
+            const ffmpegPath = await resolveFfmpegPath();
+            const ws = createWriteStream(outputPath);
+
+            await new Promise<void>((resolve, reject) => {
+              const ffmpeg = spawn(ffmpegPath, [
+                '-hide_banner', '-loglevel', 'error',
+                '-headers', ffHeaders,
+                '-i', videoUrl,
+                '-c', 'copy',
+                '-bsf:a', 'aac_adtstoasc',
+                '-f', 'mp4',
+                '-movflags', 'frag_keyframe+empty_moov',
+                outputPath,
+              ], { stdio: 'ignore' });
+
+              ffmpeg.on('exit', (code) => {
+                if (code === 0) resolve();
+                else reject(new Error(`ffmpeg exited with code ${code}`));
+              });
+              ffmpeg.on('error', reject);
+            });
           }
 
           spinner.succeed('HLS download complete.');
