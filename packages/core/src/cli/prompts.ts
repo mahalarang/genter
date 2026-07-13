@@ -1,29 +1,35 @@
 import { resolve, join, basename, dirname as pathDirname } from 'node:path';
 import { access, constants, stat } from 'node:fs/promises';
-import { input, confirm, select } from '@inquirer/prompts';
+import { input, select } from '@inquirer/prompts';
 import chalk from 'chalk';
 import { formatBytes } from './helpers.js';
 
 /**
  * Resolves the output path from CLI options.
- * Priority: --output > --output-dir + suggested filename > cwd + suggested filename
+ * Priority: --output > --output-dir + suggested filename > cwd + suggested filename.
+ * If no --output is given, prompts the user for filename.
  */
 export async function resolveOutputPath(
   output?: string,
   outputDir?: string,
   suggestedFilename?: string,
 ): Promise<string> {
-  const filename = suggestedFilename || 'video.mp4';
-
   if (output) {
     return resolve(process.cwd(), output);
   }
 
+  const defaultName = suggestedFilename || 'video.mp4';
+
+  const name = await input({
+    message: 'Output filename:',
+    default: defaultName,
+  });
+
   if (outputDir) {
-    return resolve(process.cwd(), outputDir, filename);
+    return resolve(process.cwd(), outputDir, name);
   }
 
-  return resolve(process.cwd(), filename);
+  return resolve(process.cwd(), name);
 }
 
 /**
