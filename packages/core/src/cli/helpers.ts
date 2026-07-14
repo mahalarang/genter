@@ -1,7 +1,5 @@
-import { resolve } from 'node:path';
 import { stat } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
-import { createRequire } from 'node:module';
 
 /**
  * Guess a filename from a URL. Adds .mp4 if no video extension.
@@ -55,44 +53,22 @@ export function isTwitterUrl(url: string): boolean {
 
 /**
  * Resolves the ffmpeg path.
- * Tries ffmpeg-static first, falls back to system ffmpeg.
+ * Tries bundled @ffmpeg-installer/ffmpeg first, falls back to system ffmpeg.
  */
 export async function resolveFfmpegPath(): Promise<string> {
-  // 1. Try ffmpeg-static via dynamic import
+  // 1. Try bundled ffmpeg (works with npm install, npx, and pnpm dlx)
   try {
-    const ffmpeg = await import('ffmpeg-static');
-    const path = (ffmpeg.default as string) || (ffmpeg as unknown as string) || '';
+    const ffmpeg = await import('@ffmpeg-installer/ffmpeg');
+    const path = ffmpeg.path || ffmpeg.default?.path;
     if (path) {
       await stat(path);
       return path;
     }
   } catch {
-    // ffmpeg-static import failed, continue
+    // bundled ffmpeg not available, continue
   }
 
-  // 2. Try ffmpeg-static via require (some ESM/CJS edge cases)
-  try {
-    const require = createRequire(import.meta.url);
-    const path: string = require('ffmpeg-static');
-    if (path) {
-      await stat(path);
-      return path;
-    }
-  } catch {
-    // require approach failed, continue
-  }
-
-  // 3. Try system ffmpeg
-  const homebrewPaths = ['/opt/homebrew/bin/ffmpeg', '/usr/local/bin/ffmpeg'];
-  for (const p of homebrewPaths) {
-    try {
-      await stat(p);
-      return p;
-    } catch {
-      // not at this path
-    }
-  }
-
+  // 2. Try system ffmpeg
   try {
     const systemPath = execFileSync('which', ['ffmpeg'], { encoding: 'utf8' }).trim();
     if (systemPath) return systemPath;
