@@ -19,6 +19,7 @@ import {
   isTwitterUrl,
   resolveFfmpegPath,
 } from "./cli/helpers.js";
+import { VERSION } from "./version.js";
 import { resolveOutputPath, checkExistingFile } from "./cli/prompts.js";
 
 const program = new Command();
@@ -49,6 +50,24 @@ program
     "Quick Twitter auth — paste auth_token and ct0 (format: auth_token:ct0).\n" +
       "Get them from: x.com → F12 → Application → Cookies → x.com",
   )
+  .addHelpText("beforeAll", () => {
+    const banner = [
+      `  ${chalk.cyan("▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄")}`,
+      `  ${chalk.cyan("██")}                                  ${chalk.cyan("██")}`,
+      `  ${chalk.cyan("██")}   ${chalk.yellow.bold(" ▄▄▄▄  ▄▄▄▄▄▄  ▄▄▄▄▄▄  ▄▄▄▄▄▄▄ ▄▄▄▄▄▄  ▄▄▄▄ ")}  ${chalk.cyan("██")}`,
+      `  ${chalk.cyan("██")}   ${chalk.yellow.bold("█       █▀   ▀█   █▀      █     █▀   ▀█ █   █")}  ${chalk.cyan("██")}`,
+      `  ${chalk.cyan("██")}   ${chalk.yellow.bold("█  ▄▄▄▄ █▄▄▄▄▄█   █▄▄▄    █▄▄▄▄ █▄▄▄▄▄█ █▄▄▄█")}  ${chalk.cyan("██")}`,
+      `  ${chalk.cyan("██")}   ${chalk.yellow.bold("█  ▀▀▀▀ █▀▀▀█     ▀▀▀█   █▀▀▀  █▀▀▀█  █▀▀▀ ")}  ${chalk.cyan("██")}`,
+      `  ${chalk.cyan("██")}   ${chalk.yellow.bold("▀▄▄▄▄▀ █   ▀█ ▄▄▄▄▄█    █▄▄▄▄ █   ▀█ █    ")}  ${chalk.cyan("██")}`,
+      `  ${chalk.cyan("██")}                                  ${chalk.cyan("██")}`,
+      `  ${chalk.cyan("▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀")}`,
+      ``,
+      `  ${chalk.dim("Download videos from the command line")}`,
+      `  ${chalk.dim(`v${VERSION}`)}`,
+      ``,
+    ].join("\n");
+    return banner;
+  })
   .action(
     async (
       url: string | undefined,
