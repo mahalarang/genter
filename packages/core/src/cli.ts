@@ -57,13 +57,17 @@ program
   )
   .addHelpText("beforeAll", () => {
     const banner = [
-      `  ${chalk.cyan.bold("   ▄▄▄▄▄   ▄▄▄▄▄▄  ▄▄▄▄▄▄  ▄▄▄▄▄▄▄ ▄▄▄▄▄▄  ▄▄▄▄")}`,
-      `  ${chalk.cyan.bold("  ██       █       █▀   ▀█   █▀     █▀   ▀█ █   █")}`,
-      `  ${chalk.cyan.bold("  ██  ▄▄▄  █▄▄▄▄▄  █▄▄▄▄▄█   █▄▄▄   █▄▄▄▄▄█ █▄▄▄█")}`,
-      `  ${chalk.cyan.bold("  ██  ▀▀▀  █▀▀▀     █▀▀▀█    ▀▀▀█   █▀▀▀█  █▀▀▀ ")}`,
-      `  ${chalk.cyan.bold("   ▀▄▄▄▄▀  █▄▄▄▄   █   █    ▄▄▄▄█   █   █  █")}`,
-      ``,
-      `  ${chalk.dim("Download videos from the command line  —  v" + VERSION)}`,
+      `  ${chalk.cyan.bold("╔════════════════════════════════════════════════════╗")}`,
+      `  ${chalk.cyan.bold("║")}                                                    ${chalk.cyan.bold("║")}`,
+      `  ${chalk.cyan.bold("║")}   ${chalk.yellow.bold(" ▄▄▄▄▄  ▄▄▄▄▄▄ ▄▄▄▄▄▄ ▄▄▄▄▄▄▄ ▄▄▄▄▄▄ ▄▄▄▄ ")}    ${chalk.cyan.bold("║")}`,
+      `  ${chalk.cyan.bold("║")}   ${chalk.yellow.bold("█      █      █   █   █     █   █ █   █")}    ${chalk.cyan.bold("║")}`,
+      `  ${chalk.cyan.bold("║")}   ${chalk.yellow.bold("█ ▄▄▄  █▄▄▄▄▄ █▄▄▄█   █▄▄▄  █▄▄▄▄▄ █▄▄▄█")}    ${chalk.cyan.bold("║")}`,
+      `  ${chalk.cyan.bold("║")}   ${chalk.yellow.bold("█  ▀▀  █      █  ▀█   ▀▀▀█  █   █ █  ▀█")}    ${chalk.cyan.bold("║")}`,
+      `  ${chalk.cyan.bold("║")}   ${chalk.yellow.bold(" ▀▄▄▄▀ █▄▄▄▄▄ █   █ ▄▄▄▄▄█  █   █ █   █")}    ${chalk.cyan.bold("║")}`,
+      `  ${chalk.cyan.bold("║")}                                                    ${chalk.cyan.bold("║")}`,
+      `  ${chalk.cyan.bold("║")}     ${chalk.dim("Download videos from the command line")}      ${chalk.cyan.bold("║")}`,
+      `  ${chalk.cyan.bold("║")}              ${chalk.dim("v" + VERSION)}                       ${chalk.cyan.bold("║")}`,
+      `  ${chalk.cyan.bold("╚════════════════════════════════════════════════════╝")}`,
       ``,
     ].join("\n");
     return banner;
