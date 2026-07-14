@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 
-import { Command } from 'commander';
-import ora, { type Ora } from 'ora';
-import cliProgress from 'cli-progress';
-import chalk from 'chalk';
-import { findExtractor, download } from './index.js';
-import { twitterCookiesFromTokens, TwitterExtractor } from './node.js';
-import { NodeFileWriter } from './node.js';
-import { writeFile, unlink } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { randomBytes } from 'node:crypto';
+import { Command } from "commander";
+import ora, { type Ora } from "ora";
+import cliProgress from "cli-progress";
+import chalk from "chalk";
+import { findExtractor, download } from "./index.js";
+import { twitterCookiesFromTokens, TwitterExtractor } from "./node.js";
+import { NodeFileWriter } from "./node.js";
+import { writeFile, unlink } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { randomBytes } from "node:crypto";
 
 import {
   guessFilename,
@@ -18,30 +18,36 @@ import {
   guessReferer,
   isTwitterUrl,
   resolveFfmpegPath,
-} from './cli/helpers.js';
-import { resolveOutputPath, checkExistingFile } from './cli/prompts.js';
+} from "./cli/helpers.js";
+import { resolveOutputPath, checkExistingFile } from "./cli/prompts.js";
 
 const program = new Command();
 
 program
-  .name('genter')
-  .description('Download streaming videos from supported sites')
-  .argument('[url]', 'URL of the video page to download')
-  .option('-o, --output <path>', 'Output file path (overrides automatic naming)')
-  .option('-d, --output-dir <dir>', 'Output directory (default: current directory)')
-  .option('--no-progress', 'Disable progress bar')
+  .name("genter")
+  .description("Download streaming videos from supported sites")
+  .argument("[url]", "URL of the video page to download")
   .option(
-    '--cookies-from-browser <browser>',
-    'Read cookies from browser (chrome, firefox, edge, etc.) — for Twitter/X auth',
+    "-o, --output <path>",
+    "Output file path (overrides automatic naming)",
   )
   .option(
-    '--cookies <path>',
-    'Path to Netscape-format cookies file — for Twitter/X auth',
+    "-d, --output-dir <dir>",
+    "Output directory (default: current directory)",
+  )
+  .option("--no-progress", "Disable progress bar")
+  .option(
+    "--cookies-from-browser <browser>",
+    "Read cookies from browser (chrome, firefox, edge, etc.) — for Twitter/X auth",
   )
   .option(
-    '--twitter-auth <auth_token:ct0>',
-    'Quick Twitter auth — paste auth_token and ct0 (format: auth_token:ct0).\n' +
-      'Get them from: x.com → F12 → Application → Cookies → x.com',
+    "--cookies <path>",
+    "Path to Netscape-format cookies file — for Twitter/X auth",
+  )
+  .option(
+    "--twitter-auth <auth_token:ct0>",
+    "Quick Twitter auth — paste auth_token and ct0 (format: auth_token:ct0).\n" +
+      "Get them from: x.com → F12 → Application → Cookies → x.com",
   )
   .action(
     async (
@@ -72,10 +78,10 @@ program
 
         // Convert simple --twitter-auth into a temp Netscape cookies file.
         if (options.twitterAuth) {
-          const parts = options.twitterAuth.split(':');
+          const parts = options.twitterAuth.split(":");
           if (parts.length !== 2) {
             console.error(
-              '--twitter-auth format: auth_token:ct0 (separated by colon)',
+              "--twitter-auth format: auth_token:ct0 (separated by colon)",
             );
             process.exit(1);
           }
@@ -83,13 +89,13 @@ program
           const content = twitterCookiesFromTokens(parts[0], parts[1]);
           tempCookiesFile = join(
             tmpdir(),
-            `donlod-twitter-cookies-${randomBytes(6).toString('hex')}.txt`,
+            `donlod-twitter-cookies-${randomBytes(6).toString("hex")}.txt`,
           );
-          await writeFile(tempCookiesFile, content, 'utf-8');
+          await writeFile(tempCookiesFile, content, "utf-8");
           cookiesFile = tempCookiesFile;
         }
 
-        spinner = ora('Detecting site...').start();
+        spinner = ora("Detecting site...").start();
 
         // Resolve extractor.
         // Twitter uses yt-dlp (Node.js only), handled separately.
@@ -101,18 +107,18 @@ program
           });
         }
         if (!extractor) {
-          spinner.fail('No extractor found for this URL.');
+          spinner.fail("No extractor found for this URL.");
           process.exit(1);
         }
 
-        spinner.text = 'Extracting video URL...';
+        spinner.text = "Extracting video URL...";
 
         // Step 2: Extract.
         const result = await extractor.extract(url);
         const videoUrl = result.videoUrl;
         const suggestedFilename = result.filename;
 
-        spinner.succeed('Video URL found.');
+        spinner.succeed("Video URL found.");
 
         // Step 3: Confirm output filename.
         let outputPath = await resolveOutputPath(
@@ -125,64 +131,85 @@ program
         outputPath = await checkExistingFile(outputPath);
 
         // HLS playlist detected.
-        if (videoUrl.endsWith('.m3u8') || videoUrl.endsWith('.m3u')) {
+        if (videoUrl.endsWith(".m3u8") || videoUrl.endsWith(".m3u")) {
           spinner.stop();
-          spinner.text = 'Downloading HLS stream...';
+          spinner.text = "Downloading HLS stream...";
           spinner.start();
 
           if (isTwitterUrl(url)) {
             // Twitter: use yt-dlp for auth + merge.
-            const { YtDlp } = await import('ytdlp-nodejs');
+            const { YtDlp } = await import("ytdlp-nodejs");
             const ytdlp = new YtDlp({
               ffmpegPath: await resolveFfmpegPath(),
             });
             const streamOpts: Record<string, unknown> = {};
-            if (options.cookiesFromBrowser) streamOpts.cookiesFromBrowser = options.cookiesFromBrowser;
+            if (options.cookiesFromBrowser)
+              streamOpts.cookiesFromBrowser = options.cookiesFromBrowser;
             if (cookiesFile) streamOpts.cookies = cookiesFile;
 
-            const { createWriteStream } = await import('node:fs');
+            const { createWriteStream } = await import("node:fs");
             const ws = createWriteStream(outputPath);
-            await ytdlp.stream(url, streamOpts)
-              .filter('mergevideo')
-              .quality('highest')
-              .type('mp4')
+            await ytdlp
+              .stream(url, streamOpts)
+              .filter("mergevideo")
+              .quality("highest")
+              .type("mp4")
               .embedThumbnail()
               .pipeAsync(ws);
           } else {
             // Non-Twitter: use ffmpeg directly (sends Referer, no 403).
-            const { spawn } = await import('node:child_process');
+            const { spawn } = await import("node:child_process");
             const referer = guessReferer(url);
             const ffHeaders =
               `Referer: ${referer}\r\n` +
-              'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36\r\n';
+              "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36\r\n";
 
             const ffmpegPath = await resolveFfmpegPath();
 
             await new Promise<void>((resolve, reject) => {
-              const ffmpeg = spawn(ffmpegPath, [
-                '-y',                           // force overwrite
-                '-hide_banner', '-loglevel', 'error',
-                '-headers', ffHeaders,
-                '-i', videoUrl,
-                '-c', 'copy',
-                '-bsf:a', 'aac_adtstoasc',
-                '-f', 'mp4',
-                '-movflags', 'frag_keyframe+empty_moov',
-                outputPath,
-              ], { stdio: ['ignore', 'ignore', 'pipe'] });
+              const ffmpeg = spawn(
+                ffmpegPath,
+                [
+                  "-y", // force overwrite
+                  "-hide_banner",
+                  "-loglevel",
+                  "error",
+                  "-headers",
+                  ffHeaders,
+                  "-i",
+                  videoUrl,
+                  "-c",
+                  "copy",
+                  "-bsf:a",
+                  "aac_adtstoasc",
+                  "-f",
+                  "mp4",
+                  "-movflags",
+                  "frag_keyframe+empty_moov",
+                  outputPath,
+                ],
+                { stdio: ["ignore", "ignore", "pipe"] },
+              );
 
-              let stderr = '';
-              ffmpeg.stderr.on('data', (d: Buffer) => { stderr += d.toString(); });
-
-              ffmpeg.on('exit', (code) => {
-                if (code === 0) resolve();
-                else reject(new Error(`ffmpeg: ${stderr.trim() || `exited with code ${code}`}`));
+              let stderr = "";
+              ffmpeg.stderr.on("data", (d: Buffer) => {
+                stderr += d.toString();
               });
-              ffmpeg.on('error', reject);
+
+              ffmpeg.on("exit", (code) => {
+                if (code === 0) resolve();
+                else
+                  reject(
+                    new Error(
+                      `ffmpeg: ${stderr.trim() || `exited with code ${code}`}`,
+                    ),
+                  );
+              });
+              ffmpeg.on("error", reject);
             });
           }
 
-          spinner.succeed('HLS download complete.');
+          spinner.succeed("HLS download complete.");
           console.log(chalk.green(`\nDownload complete: ${outputPath}`));
           return;
         }
@@ -191,65 +218,66 @@ program
         const writer = new NodeFileWriter(outputPath);
         const referer = guessReferer(url);
 
-      // Prepare progress bar (started lazily on first progress callback).
-      if (options.progress !== false) {
-        bar = new cliProgress.SingleBar({
-          format:
-            'Downloading [{bar}] {percentage}% | {downloaded_fmt} / {total_fmt}',
-          barCompleteChar: '=',
-          barIncompleteChar: ' ',
-          hideCursor: true,
-          fps: 10,
-          stream: process.stderr,
-          noTTYOutput: true,
-          notTTYSchedule: 1000,
-        });
-      }
+        // Prepare progress bar (started lazily on first progress callback).
+        if (options.progress !== false) {
+          bar = new cliProgress.SingleBar({
+            format:
+              "Downloading [{bar}] {percentage}% | {downloaded_fmt} / {total_fmt}",
+            barCompleteChar: "=",
+            barIncompleteChar: " ",
+            hideCursor: true,
+            fps: 10,
+            stream: process.stderr,
+            noTTYOutput: true,
+            notTTYSchedule: 1000,
+          });
+        }
 
-      // Newline so progress bar gets its own line.
-      process.stderr.write('\n');
+        // Newline so progress bar gets its own line.
+        process.stderr.write("\n");
 
-      await download({
-        videoUrl,
-        referer,
-        createWriter: async () => writer,
-        onProgress: (downloaded, total) => {
-          if (!bar) return;
+        await download({
+          videoUrl,
+          referer,
+          createWriter: async () => writer,
+          onProgress: (downloaded, total) => {
+            if (!bar) return;
 
-          if (!barStarted) {
-            bar.start(total, 0, {
-              downloaded_fmt: formatBytes(0),
+            if (!barStarted) {
+              bar.start(total, 0, {
+                downloaded_fmt: formatBytes(0),
+                total_fmt: formatBytes(total),
+              });
+              barStarted = true;
+            }
+
+            bar.update(downloaded, {
+              downloaded_fmt: formatBytes(downloaded),
               total_fmt: formatBytes(total),
             });
-            barStarted = true;
-          }
+          },
+        });
 
-          bar.update(downloaded, {
-            downloaded_fmt: formatBytes(downloaded),
-            total_fmt: formatBytes(total),
-          });
-        },
-      });
+        if (bar && barStarted) {
+          bar.stop();
+          process.stderr.write("\n");
+        }
 
-      if (bar && barStarted) {
-        bar.stop();
-        process.stderr.write('\n');
+        // Wait for rename to complete.
+        await writer.closed();
+
+        console.log(`\nDownload complete: ${outputPath}`);
+      } catch (err) {
+        if (spinner) spinner.fail(String(err));
+        else console.error(chalk.red(String(err)));
+        process.exit(1);
+      } finally {
+        // Clean up temp cookies file.
+        if (tempCookiesFile) {
+          await unlink(tempCookiesFile).catch(() => {});
+        }
       }
-
-      // Wait for rename to complete.
-      await writer.closed();
-
-      console.log(`\nDownload complete: ${outputPath}`);
-    } catch (err) {
-      if (spinner) spinner.fail(String(err));
-      else console.error(chalk.red(String(err)));
-      process.exit(1);
-    } finally {
-      // Clean up temp cookies file.
-      if (tempCookiesFile) {
-        await unlink(tempCookiesFile).catch(() => {});
-      }
-    }
-  });
+    },
+  );
 
 program.parse();
