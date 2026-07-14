@@ -8,9 +8,11 @@ import { findExtractor, download } from "./index.js";
 import { twitterCookiesFromTokens, TwitterExtractor } from "./node.js";
 import { NodeFileWriter } from "./node.js";
 import { writeFile, unlink } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
 import { randomBytes } from "node:crypto";
+import { fileURLToPath } from "node:url";
 
 import {
   guessFilename,
@@ -19,8 +21,11 @@ import {
   isTwitterUrl,
   resolveFfmpegPath,
 } from "./cli/helpers.js";
-import { VERSION } from "./version.js";
 import { resolveOutputPath, checkExistingFile } from "./cli/prompts.js";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const pkg = JSON.parse(readFileSync(join(__dirname, "..", "package.json"), "utf-8"));
+const VERSION: string = pkg.version;
 
 const program = new Command();
 
@@ -52,18 +57,13 @@ program
   )
   .addHelpText("beforeAll", () => {
     const banner = [
-      `  ${chalk.cyan("▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄")}`,
-      `  ${chalk.cyan("██")}                                  ${chalk.cyan("██")}`,
-      `  ${chalk.cyan("██")}   ${chalk.yellow.bold(" ▄▄▄▄  ▄▄▄▄▄▄  ▄▄▄▄▄▄  ▄▄▄▄▄▄▄ ▄▄▄▄▄▄  ▄▄▄▄ ")}  ${chalk.cyan("██")}`,
-      `  ${chalk.cyan("██")}   ${chalk.yellow.bold("█       █▀   ▀█   █▀      █     █▀   ▀█ █   █")}  ${chalk.cyan("██")}`,
-      `  ${chalk.cyan("██")}   ${chalk.yellow.bold("█  ▄▄▄▄ █▄▄▄▄▄█   █▄▄▄    █▄▄▄▄ █▄▄▄▄▄█ █▄▄▄█")}  ${chalk.cyan("██")}`,
-      `  ${chalk.cyan("██")}   ${chalk.yellow.bold("█  ▀▀▀▀ █▀▀▀█     ▀▀▀█   █▀▀▀  █▀▀▀█  █▀▀▀ ")}  ${chalk.cyan("██")}`,
-      `  ${chalk.cyan("██")}   ${chalk.yellow.bold("▀▄▄▄▄▀ █   ▀█ ▄▄▄▄▄█    █▄▄▄▄ █   ▀█ █    ")}  ${chalk.cyan("██")}`,
-      `  ${chalk.cyan("██")}                                  ${chalk.cyan("██")}`,
-      `  ${chalk.cyan("▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀")}`,
+      `  ${chalk.cyan.bold("   ▄▄▄▄▄   ▄▄▄▄▄▄  ▄▄▄▄▄▄  ▄▄▄▄▄▄▄ ▄▄▄▄▄▄  ▄▄▄▄")}`,
+      `  ${chalk.cyan.bold("  ██       █       █▀   ▀█   █▀     █▀   ▀█ █   █")}`,
+      `  ${chalk.cyan.bold("  ██  ▄▄▄  █▄▄▄▄▄  █▄▄▄▄▄█   █▄▄▄   █▄▄▄▄▄█ █▄▄▄█")}`,
+      `  ${chalk.cyan.bold("  ██  ▀▀▀  █▀▀▀     █▀▀▀█    ▀▀▀█   █▀▀▀█  █▀▀▀ ")}`,
+      `  ${chalk.cyan.bold("   ▀▄▄▄▄▀  █▄▄▄▄   █   █    ▄▄▄▄█   █   █  █")}`,
       ``,
-      `  ${chalk.dim("Download videos from the command line")}`,
-      `  ${chalk.dim(`v${VERSION}`)}`,
+      `  ${chalk.dim("Download videos from the command line  —  v" + VERSION)}`,
       ``,
     ].join("\n");
     return banner;
