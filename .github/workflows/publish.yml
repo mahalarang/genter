@@ -1,13 +1,8 @@
 name: Publish to npm
 
 on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Git tag to publish (e.g. v0.1.0)'
-        required: true
-        type: string
-        default: 'v0.1.0'
+  release:
+    types: [published]
 
 jobs:
   publish:
@@ -16,7 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.tag }}
+          ref: ${{ github.ref_name }}
 
       - uses: pnpm/action-setup@v4
 
@@ -35,7 +30,7 @@ jobs:
       - name: Verify version matches tag
         run: |
           PKG_VERSION="v$(node -p "require('./packages/core/package.json').version")"
-          TAG="${{ github.event.inputs.tag }}"
+          TAG="${{ github.ref_name }}"
           if [ "$PKG_VERSION" != "$TAG" ]; then
             echo "❌ Version mismatch! package.json: ${PKG_VERSION}, tag: ${TAG}"
             exit 1
