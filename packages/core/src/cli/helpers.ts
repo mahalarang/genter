@@ -1,6 +1,7 @@
 import { resolve } from 'node:path';
 import { stat } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
+import { createRequire } from 'node:module';
 
 /**
  * Guess a filename from a URL. Adds .mp4 if no video extension.
@@ -57,15 +58,39 @@ export function isTwitterUrl(url: string): boolean {
  * Tries ffmpeg-static first, falls back to system ffmpeg.
  */
 export async function resolveFfmpegPath(): Promise<string> {
+  // 1. Try ffmpeg-static via dynamic import
   try {
     const ffmpeg = await import('ffmpeg-static');
-    const path = (ffmpeg.default as string) || '';
+    const path = (ffmpeg.default as string) || (ffmpeg as unknown as string) || '';
     if (path) {
       await stat(path);
       return path;
     }
   } catch {
-    // ffmpeg-static not available, try system ffmpeg
+    // ffmpeg-static import failed, continue
+  }
+
+  // 2. Try ffmpeg-static via require (some ESM/CJS edge cases)
+  try {
+    const require = createRequire(import.meta.url);
+    const path: string = require('ffmpeg-static');
+    if (path) {
+      await stat(path);
+      return path;
+    }
+  } catch {
+    // require approach failed, continue
+  }
+
+  // 3. Try system ffmpeg
+  const homebrewPaths = ['/opt/homebrew/bin/ffmpeg', '/usr/local/bin/ffmpeg'];
+  for (const p of homebrewPaths) {
+    try {
+      await stat(p);
+      return p;
+    } catch {
+      // not at this path
+    }
   }
 
   try {
@@ -78,7 +103,6 @@ export async function resolveFfmpegPath(): Promise<string> {
   throw new Error(
     'ffmpeg not found. Install it:\n' +
     '  macOS:  brew install ffmpeg\n' +
-    '  Linux:  apt install ffmpeg / dnf install ffmpeg\n' +
-    '  Or use: npm install -g genter (bundles ffmpeg-static)'
+    '  Linux:  apt install ffmpeg / dnf install ffmpeg'
   );
 }
