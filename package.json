@@ -1,5 +1,5 @@
 {
-  "name": "genter",
+  "name": "genter-monorepo",
   "private": true,
   "scripts": {
     "build": "pnpm --recursive build",
