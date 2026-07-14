@@ -68,7 +68,18 @@ Twitter requires authentication. Use one of:
 
 ## Requirements
 
-**ffmpeg** is required for HLS stream downloads (Twitter/X and HLS sources). The package bundles `ffmpeg-static` by default.
+**[ffmpeg](https://ffmpeg.org)** must be installed on your system.
+
+| OS | Install |
+|---|---|
+| macOS | `brew install ffmpeg` |
+| Linux | `sudo apt install ffmpeg` (Debian/Ubuntu) or `sudo dnf install ffmpeg` (Fedora) |
+| Windows | `winget install ffmpeg` or `choco install ffmpeg` |
+
+Verify installation:
+```bash
+ffmpeg -version
+```
 
 ## Programmatic API
 

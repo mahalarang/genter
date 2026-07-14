@@ -1,4 +1,3 @@
-import { stat } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 
 /**
@@ -52,23 +51,9 @@ export function isTwitterUrl(url: string): boolean {
 }
 
 /**
- * Resolves the ffmpeg path.
- * Tries bundled @ffmpeg-installer/ffmpeg first, falls back to system ffmpeg.
+ * Resolves the ffmpeg path from system installation.
  */
 export async function resolveFfmpegPath(): Promise<string> {
-  // 1. Try bundled ffmpeg (works with npm install, npx, and pnpm dlx)
-  try {
-    const ffmpeg = await import('@ffmpeg-installer/ffmpeg');
-    const path = ffmpeg.path || ffmpeg.default?.path;
-    if (path) {
-      await stat(path);
-      return path;
-    }
-  } catch {
-    // bundled ffmpeg not available, continue
-  }
-
-  // 2. Try system ffmpeg
   try {
     const systemPath = execFileSync('which', ['ffmpeg'], { encoding: 'utf8' }).trim();
     if (systemPath) return systemPath;
@@ -79,6 +64,7 @@ export async function resolveFfmpegPath(): Promise<string> {
   throw new Error(
     'ffmpeg not found. Install it:\n' +
     '  macOS:  brew install ffmpeg\n' +
-    '  Linux:  apt install ffmpeg / dnf install ffmpeg'
+    '  Linux:  apt install ffmpeg / dnf install ffmpeg\n' +
+    '  Windows: winget install ffmpeg / choco install ffmpeg'
   );
 }

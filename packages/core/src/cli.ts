@@ -8,9 +8,12 @@ import { findExtractor, download } from "./index.js";
 import { twitterCookiesFromTokens, TwitterExtractor } from "./node.js";
 import { NodeFileWriter } from "./node.js";
 import { writeFile, unlink } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
 import { randomBytes } from "node:crypto";
+import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 
 import {
   guessFilename,
@@ -20,6 +23,10 @@ import {
   resolveFfmpegPath,
 } from "./cli/helpers.js";
 import { resolveOutputPath, checkExistingFile } from "./cli/prompts.js";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const pkg = JSON.parse(readFileSync(join(__dirname, "..", "package.json"), "utf-8"));
+const VERSION: string = pkg.version;
 
 const program = new Command();
 
@@ -49,6 +56,26 @@ program
     "Quick Twitter auth — paste auth_token and ct0 (format: auth_token:ct0).\n" +
       "Get them from: x.com → F12 → Application → Cookies → x.com",
   )
+  .addHelpText("beforeAll", () => {
+    const figlet = createRequire(import.meta.url)("figlet") as {
+      textSync: (text: string, opts?: { font?: string }) => string;
+    };
+    const logo = figlet.textSync("GENTER", { font: "Standard" });
+    const lines = logo.split("\n").filter(l => l.trim());
+    const width = 52;
+    const pad = (s: string, w: number) => s + " ".repeat(Math.max(0, w - s.length));
+    const banner = [
+      `  ${chalk.cyan.bold("╔" + "═".repeat(width) + "╗")}`,
+      `  ${chalk.cyan.bold("║ " + " ".repeat(width) + " ║")}`,
+      ...lines.map(l => `  ${chalk.cyan.bold("║")} ${chalk.yellow.bold(pad(l, width))} ${chalk.cyan.bold("║")}`),
+      `  ${chalk.cyan.bold("║ " + " ".repeat(width) + " ║")}`,
+      `  ${chalk.cyan.bold("║")} ${chalk.dim(pad("Download videos from the command line", width))} ${chalk.cyan.bold("║")}`,
+      `  ${chalk.cyan.bold("║")} ${chalk.dim(pad("v" + VERSION, width))} ${chalk.cyan.bold("║")}`,
+      `  ${chalk.cyan.bold("╚" + "═".repeat(width) + "╝")}`,
+      ``,
+    ].join("\n");
+    return banner;
+  })
   .action(
     async (
       url: string | undefined,
@@ -65,6 +92,19 @@ program
       if (!url) {
         program.outputHelp();
         process.exit(0);
+      }
+
+      // Check ffmpeg is installed.
+      let ffmpegPath: string;
+      try {
+        ffmpegPath = await resolveFfmpegPath();
+      } catch {
+        console.log(chalk.yellow("⚠️  ffmpeg not found."));
+        console.log(chalk.dim("   Install it first:"));
+        console.log(chalk.dim("   macOS:  brew install ffmpeg"));
+        console.log(chalk.dim("   Linux:  sudo apt install ffmpeg"));
+        console.log(chalk.dim("   Windows: winget install ffmpeg"));
+        process.exit(1);
       }
 
       let spinner: Ora | null = null;
@@ -140,7 +180,7 @@ program
             // Twitter: use yt-dlp for auth + merge.
             const { YtDlp } = await import("ytdlp-nodejs");
             const ytdlp = new YtDlp({
-              ffmpegPath: await resolveFfmpegPath(),
+              ffmpegPath,
             });
             const streamOpts: Record<string, unknown> = {};
             if (options.cookiesFromBrowser)
@@ -163,8 +203,6 @@ program
             const ffHeaders =
               `Referer: ${referer}\r\n` +
               "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36\r\n";
-
-            const ffmpegPath = await resolveFfmpegPath();
 
             await new Promise<void>((resolve, reject) => {
               const ffmpeg = spawn(

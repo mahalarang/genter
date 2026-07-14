@@ -12,6 +12,17 @@ CLI tool for downloading streaming videos from supported sites. Run it anywhere 
 2. **Downloader** — streaming HTTP download with progress tracking and resume support
 3. **CLI** — ties it together with commander, ora spinners, and a progress bar
 
+## Requirements
+
+**[ffmpeg](https://ffmpeg.org)** is required for HLS stream downloads (Twitter/X and HLS sources).
+
+| OS | Install command |
+|---|---|
+| macOS | `brew install ffmpeg` |
+| Linux (Debian/Ubuntu) | `sudo apt install ffmpeg` |
+| Linux (Fedora/RHEL) | `sudo dnf install ffmpeg` |
+| Windows | `winget install ffmpeg` or `choco install ffmpeg` |
+
 ## Quick start
 
 ```bash
@@ -82,5 +93,5 @@ Requires `NPM_TOKEN` set in [repository secrets](https://github.com/mahalarang/g
 | Package manager | pnpm |
 | Monorepo | pnpm workspaces |
 | CLI | Commander.js, ora, cli-progress, chalk, @inquirer/prompts |
-| Video | ffmpeg-static, ytdlp-nodejs (Twitter HLS) |
+| Video | ffmpeg (system), ytdlp-nodejs (Twitter HLS) |
 | Testing | Vitest |
