@@ -67,6 +67,19 @@ program
         process.exit(0);
       }
 
+      // Check ffmpeg is installed.
+      let ffmpegPath: string;
+      try {
+        ffmpegPath = await resolveFfmpegPath();
+      } catch {
+        console.log(chalk.yellow("⚠️  ffmpeg not found."));
+        console.log(chalk.dim("   Install it first:"));
+        console.log(chalk.dim("   macOS:  brew install ffmpeg"));
+        console.log(chalk.dim("   Linux:  sudo apt install ffmpeg"));
+        console.log(chalk.dim("   Windows: winget install ffmpeg"));
+        process.exit(1);
+      }
+
       let spinner: Ora | null = null;
       let bar: cliProgress.SingleBar | null = null;
       let barStarted = false;
@@ -140,7 +153,7 @@ program
             // Twitter: use yt-dlp for auth + merge.
             const { YtDlp } = await import("ytdlp-nodejs");
             const ytdlp = new YtDlp({
-              ffmpegPath: await resolveFfmpegPath(),
+              ffmpegPath,
             });
             const streamOpts: Record<string, unknown> = {};
             if (options.cookiesFromBrowser)
@@ -163,8 +176,6 @@ program
             const ffHeaders =
               `Referer: ${referer}\r\n` +
               "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36\r\n";
-
-            const ffmpegPath = await resolveFfmpegPath();
 
             await new Promise<void>((resolve, reject) => {
               const ffmpeg = spawn(
