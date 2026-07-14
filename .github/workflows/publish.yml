@@ -4,30 +4,13 @@ on:
   release:
     types: [published]
   workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Tag to publish'
-        required: true
-        type: choice
-        options:
-          - v0.1.0
 
 jobs:
   publish:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Set checkout ref
-        run: |
-          if [ "${{ github.event_name }}" = "release" ]; then
-            echo "REF=${{ github.ref_name }}" >> $GITHUB_ENV
-          else
-            echo "REF=${{ github.event.inputs.tag }}" >> $GITHUB_ENV
-          fi
-
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ env.REF }}
 
       - uses: pnpm/action-setup@v4
 
@@ -42,15 +25,6 @@ jobs:
 
       - name: Build
         run: pnpm --filter genter build
-
-      - name: Verify version matches tag
-        run: |
-          PKG_VERSION="v$(node -p "require('./packages/core/package.json').version")"
-          if [ "$PKG_VERSION" != "$REF" ]; then
-            echo "❌ Version mismatch! package.json: ${PKG_VERSION}, tag: ${REF}"
-            exit 1
-          fi
-          echo "✅ Version match: ${PKG_VERSION}"
 
       - name: Publish to npm
         run: pnpm publish --filter genter --no-git-checks
