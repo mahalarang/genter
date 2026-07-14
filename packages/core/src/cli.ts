@@ -13,6 +13,7 @@ import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { randomBytes } from "node:crypto";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 
 import {
   guessFilename,
@@ -56,18 +57,21 @@ program
       "Get them from: x.com → F12 → Application → Cookies → x.com",
   )
   .addHelpText("beforeAll", () => {
+    const figlet = createRequire(import.meta.url)("figlet") as {
+      textSync: (text: string, opts?: { font?: string }) => string;
+    };
+    const logo = figlet.textSync("GENTER", { font: "Standard" });
+    const lines = logo.split("\n").filter(l => l.trim());
+    const width = 52;
+    const pad = (s: string, w: number) => s + " ".repeat(Math.max(0, w - s.length));
     const banner = [
-      `  ${chalk.cyan.bold("╔════════════════════════════════════════════════════╗")}`,
-      `  ${chalk.cyan.bold("║")}                                                    ${chalk.cyan.bold("║")}`,
-      `  ${chalk.cyan.bold("║")}   ${chalk.yellow.bold(" ▄▄▄▄▄  ▄▄▄▄▄▄ ▄▄▄▄▄▄ ▄▄▄▄▄▄▄ ▄▄▄▄▄▄ ▄▄▄▄ ")}    ${chalk.cyan.bold("║")}`,
-      `  ${chalk.cyan.bold("║")}   ${chalk.yellow.bold("█      █      █   █   █     █   █ █   █")}    ${chalk.cyan.bold("║")}`,
-      `  ${chalk.cyan.bold("║")}   ${chalk.yellow.bold("█ ▄▄▄  █▄▄▄▄▄ █▄▄▄█   █▄▄▄  █▄▄▄▄▄ █▄▄▄█")}    ${chalk.cyan.bold("║")}`,
-      `  ${chalk.cyan.bold("║")}   ${chalk.yellow.bold("█  ▀▀  █      █  ▀█   ▀▀▀█  █   █ █  ▀█")}    ${chalk.cyan.bold("║")}`,
-      `  ${chalk.cyan.bold("║")}   ${chalk.yellow.bold(" ▀▄▄▄▀ █▄▄▄▄▄ █   █ ▄▄▄▄▄█  █   █ █   █")}    ${chalk.cyan.bold("║")}`,
-      `  ${chalk.cyan.bold("║")}                                                    ${chalk.cyan.bold("║")}`,
-      `  ${chalk.cyan.bold("║")}     ${chalk.dim("Download videos from the command line")}      ${chalk.cyan.bold("║")}`,
-      `  ${chalk.cyan.bold("║")}              ${chalk.dim("v" + VERSION)}                       ${chalk.cyan.bold("║")}`,
-      `  ${chalk.cyan.bold("╚════════════════════════════════════════════════════╝")}`,
+      `  ${chalk.cyan.bold("╔" + "═".repeat(width) + "╗")}`,
+      `  ${chalk.cyan.bold("║ " + " ".repeat(width) + " ║")}`,
+      ...lines.map(l => `  ${chalk.cyan.bold("║")} ${chalk.yellow.bold(pad(l, width))} ${chalk.cyan.bold("║")}`),
+      `  ${chalk.cyan.bold("║ " + " ".repeat(width) + " ║")}`,
+      `  ${chalk.cyan.bold("║")} ${chalk.dim(pad("Download videos from the command line", width))} ${chalk.cyan.bold("║")}`,
+      `  ${chalk.cyan.bold("║")} ${chalk.dim(pad("v" + VERSION, width))} ${chalk.cyan.bold("║")}`,
+      `  ${chalk.cyan.bold("╚" + "═".repeat(width) + "╝")}`,
       ``,
     ].join("\n");
     return banner;
