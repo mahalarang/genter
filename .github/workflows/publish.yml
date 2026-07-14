@@ -3,7 +3,6 @@ name: Publish to npm
 on:
   release:
     types: [published]
-  workflow_dispatch:
 
 jobs:
   publish:
@@ -11,10 +10,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        if: github.event_name == 'workflow_dispatch'
-
-      - uses: actions/checkout@v4
-        if: github.event_name == 'release'
         with:
           ref: ${{ github.ref_name }}
 
@@ -33,7 +28,6 @@ jobs:
         run: pnpm --filter genter build
 
       - name: Verify version matches tag
-        if: github.event_name == 'release'
         run: |
           PKG_VERSION="v$(node -p "require('./packages/core/package.json').version")"
           TAG="${{ github.ref_name }}"
