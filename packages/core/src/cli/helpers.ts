@@ -1,5 +1,6 @@
 import { resolve } from 'node:path';
 import { stat } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
 
 /**
  * Guess a filename from a URL. Adds .mp4 if no video extension.
@@ -52,9 +53,32 @@ export function isTwitterUrl(url: string): boolean {
 }
 
 /**
- * Resolves the ffmpeg path from ffmpeg-static.
+ * Resolves the ffmpeg path.
+ * Tries ffmpeg-static first, falls back to system ffmpeg.
  */
 export async function resolveFfmpegPath(): Promise<string> {
-  const ffmpeg = await import('ffmpeg-static');
-  return (ffmpeg.default as string) || '';
+  try {
+    const ffmpeg = await import('ffmpeg-static');
+    const path = (ffmpeg.default as string) || '';
+    if (path) {
+      await stat(path);
+      return path;
+    }
+  } catch {
+    // ffmpeg-static not available, try system ffmpeg
+  }
+
+  try {
+    const systemPath = execFileSync('which', ['ffmpeg'], { encoding: 'utf8' }).trim();
+    if (systemPath) return systemPath;
+  } catch {
+    // not found
+  }
+
+  throw new Error(
+    'ffmpeg not found. Install it:\n' +
+    '  macOS:  brew install ffmpeg\n' +
+    '  Linux:  apt install ffmpeg / dnf install ffmpeg\n' +
+    '  Or use: npm install -g genter (bundles ffmpeg-static)'
+  );
 }
