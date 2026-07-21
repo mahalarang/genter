@@ -290,6 +290,10 @@ async function downloadSingle(
   const { videoUrl, outputPath } = task;
   const { ffmpegPath, cookiesFile, cookiesFromBrowser, isTwitter, url, showProgress } = opts;
 
+  // Ensure output directory exists.
+  const outDir = dirname(outputPath);
+  if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
+
   // HLS download for Twitter.
   if (isTwitter && (videoUrl.endsWith(".m3u8") || videoUrl.endsWith(".m3u"))) {
     const { YtDlp } = await import("ytdlp-nodejs");
