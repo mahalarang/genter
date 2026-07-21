@@ -4,7 +4,6 @@ import { Command } from "commander";
 import ora, { type Ora } from "ora";
 import cliProgress from "cli-progress";
 import chalk from "chalk";
-import checkbox from "@inquirer/checkbox";
 import { findExtractor, download } from "./index.js";
 import { twitterCookiesFromTokens, TwitterExtractor } from "./node.js";
 import { NodeFileWriter } from "./node.js";
@@ -155,9 +154,6 @@ program
         const videoUrls = result?.videoUrls;
         const suggestedFilename = result?.filename;
 
-        console.error('DEBUG: videoUrls =', videoUrls);
-        console.error('DEBUG: length =', videoUrls?.length);
-
         if (!videoUrls || videoUrls.length === 0) {
           throw new Error(
             'No video found. The tweet may require login or not contain video.\n' +
@@ -170,6 +166,7 @@ program
         // Step 3: Select which videos to download.
         let selectedUrls: string[];
         if (videoUrls.length > 1) {
+          const { default: checkbox } = await import("@inquirer/checkbox");
           const choices = videoUrls.map((_, i) => {
             const label = videoUrls.length > 1 ? `Video ${i + 1}` : `Video`;
             return { name: label, value: i };
@@ -178,8 +175,6 @@ program
             message: "Select videos to download (space to select, enter to confirm):",
             choices,
           });
-          console.error('DEBUG: selected =', selected);
-          console.error('DEBUG: selected type =', typeof selected, Array.isArray(selected));
           if (!selected || selected.length === 0) {
             console.log(chalk.yellow("No video selected. Cancelled."));
             process.exit(0);
