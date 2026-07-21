@@ -1,5 +1,5 @@
-import { YtDlp } from 'ytdlp-nodejs';
-import type { Extractor, ExtractResult } from '../extractor.js';
+import { YtDlp } from "ytdlp-nodejs";
+import type { Extractor, ExtractResult } from "../extractor.js";
 
 /**
  * Auth options for Twitter/X extraction.
@@ -11,7 +11,7 @@ export interface TwitterAuth {
   cookiesFromBrowser?: string;
 }
 
-const TWITTER_DOMAINS = ['x.com', 'twitter.com'];
+const TWITTER_DOMAINS = ["x.com", "twitter.com"];
 
 /**
  * Generate a Netscape-format cookie string from just the two
@@ -31,16 +31,16 @@ export function twitterCookiesFromTokens(
 ): string {
   // Netscape cookie format:
   // domain  flag  path  secure  expiration  name  value
-  const domain = '.x.com';
-  const path = '/';
+  const domain = ".x.com";
+  const path = "/";
   const expiration = Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60;
 
   return [
-    [domain, 'TRUE', path, 'TRUE', String(expiration), 'auth_token', authToken],
-    [domain, 'TRUE', path, 'TRUE', String(expiration), 'ct0', ct0],
+    [domain, "TRUE", path, "TRUE", String(expiration), "auth_token", authToken],
+    [domain, "TRUE", path, "TRUE", String(expiration), "ct0", ct0],
   ]
-    .map((row) => row.join('\t'))
-    .join('\n');
+    .map((row) => row.join("\t"))
+    .join("\n");
 }
 
 /**
@@ -68,24 +68,21 @@ export class TwitterExtractor implements Extractor {
     try {
       const resp = await fetch(pageUrl, {
         headers: {
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         },
       });
       const body = await resp.text();
 
-      if (body.includes('Something went wrong')) {
-        throw new Error('This tweet has been suspended or deleted.');
+      if (body.includes("Something went wrong")) {
+        throw new Error("This tweet has been suspended or deleted.");
       }
     } catch (err) {
-      // Re-throw our own errors; ignore fetch failures (let yt-dlp try).
-      if (err instanceof Error && err.message.includes('suspended')) throw err;
+      if (err instanceof Error && err.message.includes("suspended")) throw err;
     }
 
-    // Now try yt-dlp for extraction.
+    // Yt-dlp extraction.
     const ytdlp = new YtDlp();
-
-    // Build yt-dlp options.
     const opts: Record<string, unknown> = {};
 
     if (this.auth?.cookies) {
@@ -95,6 +92,44 @@ export class TwitterExtractor implements Extractor {
       opts.cookiesFromBrowser = this.auth.cookiesFromBrowser;
     }
 
+    // Try getInfoAsync first — handles multi-video tweets as playlists.
+    const info = await ytdlp.getInfoAsync(pageUrl, opts);
+
+    // Multi-video tweet: entries is a playlist of individual videos.
+    const entries = (info as unknown as Record<string, unknown>)?.entries as Array<Record<string, unknown>> | undefined;
+    if (entries && entries.length > 0) {
+      const urls: string[] = [];
+      const filenames: string[] = [];
+
+      for (const entry of entries) {
+        // Extract HLS video URL from requested_downloads or formats.
+        const dl = (entry.requested_downloads as Array<Record<string, unknown>>)?.[0];
+        const videoFormat = (dl?.requested_formats as Array<Record<string, unknown>>)?.[0] || (entry.formats as Array<Record<string, unknown>>)?.[0];
+        if (videoFormat?.url) {
+          urls.push(videoFormat.url as string);
+        }
+
+        // Use the auto-generated filename from yt-dlp.
+        if (dl?.filename) {
+          filenames.push(dl.filename as string);
+        }
+      }
+
+      if (urls.length === 0) {
+        throw new Error(
+          'No video found in this tweet. It may be age-restricted, ' +
+            'require login, or not contain video. ' +
+            'Try: genter --twitter-auth "auth_token:ct0" <url>'
+        );
+      }
+
+      return {
+        videoUrls: urls,
+        filename: filenames[0],
+      };
+    }
+
+    // Single video tweet: use getDirectUrlsAsync.
     const urls = await ytdlp.getDirectUrlsAsync(pageUrl, opts);
 
     if (!urls || urls.length === 0) {
@@ -106,7 +141,6 @@ export class TwitterExtractor implements Extractor {
     }
 
     // Build filename: twitter-username-tweetId.mp4
-
     let filename: string | undefined;
     if (tweetId && username) {
       filename = `twitter-${username}-${tweetId}.mp4`;
