@@ -99,7 +99,6 @@ export class TwitterExtractor implements Extractor {
     // Multi-video tweet: PlaylistInfo with entries.
     if (info._type === "playlist" && info.entries && info.entries.length > 0) {
       const urls: string[] = [];
-      const filenames: string[] = [];
 
       for (const entry of info.entries) {
         // Extract HLS video URL from requested_downloads or formats.
@@ -108,10 +107,6 @@ export class TwitterExtractor implements Extractor {
         const videoFormat = requestedFormats?.[0] || entry.formats?.[0];
         if (videoFormat?.url) {
           urls.push(videoFormat.url as string);
-        }
-
-        if (dl?.filename) {
-          filenames.push(dl.filename as string);
         }
       }
 
@@ -123,10 +118,15 @@ export class TwitterExtractor implements Extractor {
         );
       }
 
-      return {
-        videoUrls: urls,
-        filename: filenames[0],
-      };
+      // Build filename using our own pattern, not yt-dlp's auto-generated name.
+      let filename: string | undefined;
+      if (tweetId && username) {
+        filename = `twitter-${username}-${tweetId}.mp4`;
+      } else if (tweetId) {
+        filename = `twitter-${tweetId}.mp4`;
+      }
+
+      return { videoUrls: urls, filename };
     }
 
     // Single video tweet: use getDirectUrlsAsync.

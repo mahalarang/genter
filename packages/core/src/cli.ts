@@ -8,7 +8,7 @@ import { findExtractor, download } from "./index.js";
 import { twitterCookiesFromTokens, TwitterExtractor } from "./node.js";
 import { NodeFileWriter } from "./node.js";
 import { writeFile, unlink } from "node:fs/promises";
-import { readFileSync } from "node:fs";
+import { readFileSync, mkdirSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { randomBytes } from "node:crypto";
@@ -205,6 +205,12 @@ program
           const outputPath = join(options.outputDir || ".", options.output || filename);
           return { videoUrl, outputPath, index: i };
         });
+
+        // Ensure output directory exists.
+        for (const d of downloads) {
+          const dir = dirname(d.outputPath);
+          if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+        }
 
         // Step 5: Download.
         const isTwitter = isTwitterUrl(url);
