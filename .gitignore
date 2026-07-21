@@ -11,3 +11,5 @@ docs
 *.mp4
 *.webm
 *.mkv
+*.part
+*.ytdl
