@@ -250,7 +250,8 @@ program
           console.log(chalk.dim(`  ${d.outputPath}`));
         }
       } catch (err) {
-        console.error(chalk.red(String(err)));
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error(chalk.red(`\n${msg}`));
         process.exit(1);
       } finally {
         if (tempCookiesFile) {
