@@ -25,7 +25,9 @@ import {
 import { resolveOutputPath, checkExistingFile } from "./cli/prompts.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const pkg = JSON.parse(readFileSync(join(__dirname, "..", "package.json"), "utf-8"));
+const pkg = JSON.parse(
+  readFileSync(join(__dirname, "..", "package.json"), "utf-8"),
+);
 const VERSION: string = pkg.version;
 
 const program = new Command();
@@ -61,13 +63,17 @@ program
       textSync: (text: string, opts?: { font?: string }) => string;
     };
     const logo = figlet.textSync("GENTER", { font: "Standard" });
-    const lines = logo.split("\n").filter(l => l.trim());
+    const lines = logo.split("\n").filter((l) => l.trim());
     const width = 52;
-    const pad = (s: string, w: number) => s + " ".repeat(Math.max(0, w - s.length));
+    const pad = (s: string, w: number) =>
+      s + " ".repeat(Math.max(0, w - s.length));
     const banner = [
       `  ${chalk.cyan.bold("╔" + "═".repeat(width) + "╗")}`,
       `  ${chalk.cyan.bold("║ " + " ".repeat(width) + " ║")}`,
-      ...lines.map(l => `  ${chalk.cyan.bold("║")} ${chalk.yellow.bold(pad(l, width))} ${chalk.cyan.bold("║")}`),
+      ...lines.map(
+        (l) =>
+          `  ${chalk.cyan.bold("║")} ${chalk.yellow.bold(pad(l, width))} ${chalk.cyan.bold("║")}`,
+      ),
       `  ${chalk.cyan.bold("║ " + " ".repeat(width) + " ║")}`,
       `  ${chalk.cyan.bold("║")} ${chalk.dim(pad("Download videos from the command line", width))} ${chalk.cyan.bold("║")}`,
       `  ${chalk.cyan.bold("║")} ${chalk.dim(pad("v" + VERSION, width))} ${chalk.cyan.bold("║")}`,
@@ -156,8 +162,8 @@ program
 
         if (!videoUrls || videoUrls.length === 0) {
           throw new Error(
-            'No video found. The tweet may require login or not contain video.\n' +
-            '  Try: genter --twitter-auth "auth_token:ct0" <url>'
+            "No video found. The tweet may require login or not contain video.\n" +
+              '  Try: genter --twitter-auth "auth_token:ct0" <url>',
           );
         }
 
@@ -172,7 +178,8 @@ program
             return { name: label, value: i };
           });
           const selected = await checkbox({
-            message: "Select videos to download (space to select, enter to confirm):",
+            message:
+              "Select videos to download (space to select, enter to confirm):",
             choices,
           });
           if (!selected || selected.length === 0) {
@@ -184,14 +191,17 @@ program
           selectedUrls = videoUrls;
         }
 
-        // Step 4: Build output paths.
-        const baseName = suggestedFilename || guessFilename(url);
+        // Step 4: Download each selected video sequentially.
+        const isTwitter = isTwitterUrl(url);
         const multi = selectedUrls.length > 1;
 
-        const downloads = selectedUrls.map((videoUrl, i) => {
-          // For multi-video, append -1, -2, etc to filename.
+        for (let i = 0; i < selectedUrls.length; i++) {
+          const videoUrl = selectedUrls[i];
+
+          // Build filename.
           let filename: string;
           if (multi) {
+            const baseName = suggestedFilename || guessFilename(url);
             const dotIdx = baseName.lastIndexOf(".");
             if (dotIdx > 0) {
               filename = baseName.slice(0, dotIdx) + `-${i + 1}` + baseName.slice(dotIdx);
@@ -199,61 +209,80 @@ program
               filename = `${baseName}-${i + 1}.mp4`;
             }
           } else {
-            filename = baseName;
+            filename = suggestedFilename || guessFilename(url);
           }
 
-          const outputPath = join(options.outputDir || ".", options.output || filename);
-          return { videoUrl, outputPath, index: i };
-        });
+          // Resolve output path with user prompts.
+          let outputPath = await resolveOutputPath(
+            options.output,
+            options.outputDir,
+            filename,
+          );
+          outputPath = await checkExistingFile(outputPath);
 
-        // Ensure output directory exists.
-        for (const d of downloads) {
-          const dir = dirname(d.outputPath);
-          if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-        }
+          // Ensure output directory exists.
+          const outDir = dirname(outputPath);
+          if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
 
-        // Step 5: Download.
-        const isTwitter = isTwitterUrl(url);
-        const showProgress = options.progress !== false;
+          // Download.
+          const status = multi ? `[${i + 1}/${selectedUrls.length}] ` : "";
+          const spinner2 = multi ? ora(`${status}Downloading video ${i + 1}...`).start() : null;
 
-        if (downloads.length === 1 && showProgress) {
-          // Single download — use SingleBar.
-          await downloadSingle(downloads[0], {
-            ffmpegPath,
-            cookiesFile,
-            cookiesFromBrowser: options.cookiesFromBrowser,
-            isTwitter,
-            url,
-            showProgress,
-          });
-        } else if (downloads.length > 1 && showProgress) {
-          // Multi download — use MultiBar.
-          await downloadMulti(downloads, {
-            ffmpegPath,
-            cookiesFile,
-            cookiesFromBrowser: options.cookiesFromBrowser,
-            isTwitter,
-            url,
-          });
-        } else {
-          // No progress bar.
-          await Promise.all(
-            downloads.map(d =>
-              downloadSingle(d, {
+          try {
+            if (!multi && options.progress !== false) {
+              // Single video: progress bar.
+              const bar = new cliProgress.SingleBar({
+                format: "Downloading [{bar}] {percentage}% | {downloaded_fmt} / {total_fmt}",
+                barCompleteChar: "=",
+                barIncompleteChar: " ",
+                hideCursor: true,
+                fps: 10,
+                stream: process.stderr,
+                noTTYOutput: true,
+                notTTYSchedule: 1000,
+              });
+              let barStarted = false;
+              process.stderr.write("\n");
+
+              await downloadOne(videoUrl, outputPath, {
                 ffmpegPath,
                 cookiesFile,
                 cookiesFromBrowser: options.cookiesFromBrowser,
                 isTwitter,
                 url,
-                showProgress: false,
-              }),
-            ),
-          );
-        }
+              }, (downloaded, total) => {
+                if (!barStarted) {
+                  bar.start(total, 0, { downloaded_fmt: formatBytes(0), total_fmt: formatBytes(total) });
+                  barStarted = true;
+                }
+                bar.update(downloaded, { downloaded_fmt: formatBytes(downloaded), total_fmt: formatBytes(total) });
+              });
 
-        console.log(chalk.green(`\nDownload complete!`));
-        for (const d of downloads) {
-          console.log(chalk.dim(`  ${d.outputPath}`));
+              if (barStarted) { bar.stop(); process.stderr.write("\n"); }
+              console.log(chalk.green(`\nDownload complete: ${outputPath}`));
+            } else {
+              // Multi-video or no progress: just download.
+              await downloadOne(videoUrl, outputPath, {
+                ffmpegPath,
+                cookiesFile,
+                cookiesFromBrowser: options.cookiesFromBrowser,
+                isTwitter,
+                url,
+              });
+
+              if (multi) {
+                spinner2!.succeed(`${status}Done: ${outputPath}`);
+              } else {
+                console.log(chalk.green(`\nDownload complete: ${outputPath}`));
+              }
+            }
+          } catch (err) {
+            if (multi) {
+              spinner2!.fail(`${status}Failed: ${err}`);
+            } else {
+              throw err;
+            }
+          }
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -267,32 +296,21 @@ program
     },
   );
 
-interface DownloadTask {
-  videoUrl: string;
-  outputPath: string;
-  index: number;
-}
-
 interface DownloadOpts {
   ffmpegPath: string;
   cookiesFile?: string;
   cookiesFromBrowser?: string;
   isTwitter: boolean;
   url: string;
-  showProgress?: boolean;
 }
 
-async function downloadSingle(
-  task: DownloadTask,
+async function downloadOne(
+  videoUrl: string,
+  outputPath: string,
   opts: DownloadOpts,
-  bar?: cliProgress.SingleBar,
+  onProgress?: (downloaded: number, total: number) => void,
 ): Promise<void> {
-  const { videoUrl, outputPath } = task;
-  const { ffmpegPath, cookiesFile, cookiesFromBrowser, isTwitter, url, showProgress } = opts;
-
-  // Ensure output directory exists.
-  const outDir = dirname(outputPath);
-  if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
+  const { ffmpegPath, cookiesFile, cookiesFromBrowser, isTwitter, url } = opts;
 
   // HLS download for Twitter.
   if (isTwitter && (videoUrl.endsWith(".m3u8") || videoUrl.endsWith(".m3u"))) {
@@ -358,69 +376,15 @@ async function downloadSingle(
   // Direct download.
   const writer = new NodeFileWriter(outputPath);
   const referer = guessReferer(url);
-  let barStarted = false;
 
   await download({
     videoUrl,
     referer,
     createWriter: async () => writer,
-    onProgress: (downloaded, total) => {
-      if (!bar || !showProgress) return;
-      if (!barStarted) {
-        bar.start(total, 0, {
-          downloaded_fmt: formatBytes(0),
-          total_fmt: formatBytes(total),
-        });
-        barStarted = true;
-      }
-      bar.update(downloaded, {
-        downloaded_fmt: formatBytes(downloaded),
-        total_fmt: formatBytes(total),
-      });
-    },
+    onProgress: onProgress || (() => {}),
   });
-
-  if (bar && barStarted) {
-    bar.stop();
-  }
 
   await writer.closed();
-}
-
-async function downloadMulti(
-  downloads: DownloadTask[],
-  opts: DownloadOpts,
-): Promise<void> {
-  const multibar = new cliProgress.MultiBar({
-    format: "[{bar}] {percentage}% | {filename}",
-    barCompleteChar: "=",
-    barIncompleteChar: " ",
-    hideCursor: true,
-    fps: 10,
-    stream: process.stderr,
-    noTTYOutput: true,
-    notTTYSchedule: 1000,
-  });
-
-  process.stderr.write("\n");
-
-  const label = (t: DownloadTask) => {
-    const name = downloads.length > 1
-      ? `Video ${t.index + 1}`
-      : "Downloading";
-    return name;
-  };
-
-  const bars = downloads.map(d => multibar.create(100, 0, { filename: label(d) }));
-
-  const tasks = downloads.map((d, i) =>
-    downloadSingle(d, opts, bars[i]).catch(err => {
-      console.error(chalk.red(`\n  Error (video ${i + 1}): ${err}`));
-    }),
-  );
-
-  await Promise.all(tasks);
-  multibar.stop();
 }
 
 program.parse();
