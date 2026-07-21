@@ -14,6 +14,9 @@ importers:
 
   packages/core:
     dependencies:
+      '@inquirer/checkbox':
+        specifier: ^5.2.1
+        version: 5.2.1(@types/node@26.1.1)
       '@inquirer/prompts':
         specifier: ^8.5.2
         version: 8.5.2(@types/node@26.1.1)

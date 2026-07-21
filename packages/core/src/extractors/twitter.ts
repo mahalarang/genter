@@ -114,7 +114,7 @@ export class TwitterExtractor implements Extractor {
     }
 
     return {
-      videoUrl: urls[urls.length - 1],
+      videoUrls: urls,
       filename,
     };
   }

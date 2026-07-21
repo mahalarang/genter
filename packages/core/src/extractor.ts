@@ -2,8 +2,8 @@
  * The result of a successful extraction.
  */
 export interface ExtractResult {
-  /** Direct URL to the video file (CDN). */
-  videoUrl: string;
+  /** Direct URLs to the video files (CDN). Multiple URLs for multi-video tweets. */
+  videoUrls: string[];
 
   /**
    * Suggested output filename (without path).

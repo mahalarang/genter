@@ -95,7 +95,7 @@ export class XpvidExtractor implements Extractor {
         : videoUrl;
 
     return {
-      videoUrl: proxiedVideoUrl,
+      videoUrls: [proxiedVideoUrl],
       filename,
     };
   }

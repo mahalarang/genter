@@ -83,6 +83,6 @@ export class VdytoExtractor implements Extractor {
     }
     filename += '.mp4';
 
-    return { videoUrl, filename };
+    return { videoUrls: [videoUrl], filename };
   }
 }

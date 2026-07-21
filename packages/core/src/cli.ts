@@ -4,6 +4,7 @@ import { Command } from "commander";
 import ora, { type Ora } from "ora";
 import cliProgress from "cli-progress";
 import chalk from "chalk";
+import checkbox from "@inquirer/checkbox";
 import { findExtractor, download } from "./index.js";
 import { twitterCookiesFromTokens, TwitterExtractor } from "./node.js";
 import { NodeFileWriter } from "./node.js";
@@ -107,9 +108,6 @@ program
         process.exit(1);
       }
 
-      let spinner: Ora | null = null;
-      let bar: cliProgress.SingleBar | null = null;
-      let barStarted = false;
       let tempCookiesFile: string | null = null;
 
       try {
@@ -135,10 +133,9 @@ program
           cookiesFile = tempCookiesFile;
         }
 
-        spinner = ora("Detecting site...").start();
+        const spinner = ora("Detecting site...").start();
 
         // Resolve extractor.
-        // Twitter uses yt-dlp (Node.js only), handled separately.
         let extractor = findExtractor(url);
         if (!extractor && isTwitterUrl(url)) {
           extractor = new TwitterExtractor({
@@ -155,175 +152,253 @@ program
 
         // Step 2: Extract.
         const result = await extractor.extract(url);
-        const videoUrl = result.videoUrl;
-        const suggestedFilename = result.filename;
+        const { videoUrls, filename: suggestedFilename } = result;
 
-        spinner.succeed("Video URL found.");
+        spinner.succeed(`${videoUrls.length} video(s) found.`);
 
-        // Step 3: Confirm output filename.
-        let outputPath = await resolveOutputPath(
-          options.output,
-          options.outputDir,
-          suggestedFilename || guessFilename(url),
-        );
+        // Step 3: Select which videos to download.
+        let selectedUrls: string[];
+        if (videoUrls.length > 1) {
+          const choices = videoUrls.map((_, i) => {
+            const label = videoUrls.length > 1 ? `Video ${i + 1}` : `Video`;
+            return { name: label, value: i };
+          });
+          const selected = await checkbox({
+            message: "Select videos to download (space to select, enter to confirm):",
+            choices,
+            required: true,
+          });
+          selectedUrls = selected.map((i: number) => videoUrls[i]);
+        } else {
+          selectedUrls = videoUrls;
+        }
 
-        // Check if file already exists.
-        outputPath = await checkExistingFile(outputPath);
+        // Step 4: Build output paths.
+        const baseName = suggestedFilename || guessFilename(url);
+        const multi = selectedUrls.length > 1;
 
-        // HLS playlist detected.
-        if (videoUrl.endsWith(".m3u8") || videoUrl.endsWith(".m3u")) {
-          spinner.stop();
-          spinner.text = "Downloading HLS stream...";
-          spinner.start();
-
-          if (isTwitterUrl(url)) {
-            // Twitter: use yt-dlp for auth + merge.
-            const { YtDlp } = await import("ytdlp-nodejs");
-            const ytdlp = new YtDlp({
-              ffmpegPath,
-            });
-            const streamOpts: Record<string, unknown> = {};
-            if (options.cookiesFromBrowser)
-              streamOpts.cookiesFromBrowser = options.cookiesFromBrowser;
-            if (cookiesFile) streamOpts.cookies = cookiesFile;
-
-            const { createWriteStream } = await import("node:fs");
-            const ws = createWriteStream(outputPath);
-            // yt-dlp creates temp files (thumbnails etc) in CWD, 
-            // so change to output dir to avoid littering.
-            const origCwd = process.cwd();
-            process.chdir(dirname(outputPath));
-            try {
-              await ytdlp
-                .stream(url, streamOpts)
-                .filter("mergevideo")
-                .quality("highest")
-                .type("mp4")
-                .embedThumbnail()
-                .pipeAsync(ws);
-            } finally {
-              process.chdir(origCwd);
+        const downloads = selectedUrls.map((videoUrl, i) => {
+          // For multi-video, append -1, -2, etc to filename.
+          let filename: string;
+          if (multi) {
+            const dotIdx = baseName.lastIndexOf(".");
+            if (dotIdx > 0) {
+              filename = baseName.slice(0, dotIdx) + `-${i + 1}` + baseName.slice(dotIdx);
+            } else {
+              filename = `${baseName}-${i + 1}.mp4`;
             }
           } else {
-            // Non-Twitter: use ffmpeg directly (sends Referer, no 403).
-            const { spawn } = await import("node:child_process");
-            const referer = guessReferer(url);
-            const ffHeaders =
-              `Referer: ${referer}\r\n` +
-              "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36\r\n";
-
-            await new Promise<void>((resolve, reject) => {
-              const ffmpeg = spawn(
-                ffmpegPath,
-                [
-                  "-y", // force overwrite
-                  "-hide_banner",
-                  "-loglevel",
-                  "error",
-                  "-headers",
-                  ffHeaders,
-                  "-i",
-                  videoUrl,
-                  "-c",
-                  "copy",
-                  "-bsf:a",
-                  "aac_adtstoasc",
-                  "-f",
-                  "mp4",
-                  "-movflags",
-                  "frag_keyframe+empty_moov",
-                  outputPath,
-                ],
-                { stdio: ["ignore", "ignore", "pipe"], cwd: dirname(outputPath) },
-              );
-
-              let stderr = "";
-              ffmpeg.stderr.on("data", (d: Buffer) => {
-                stderr += d.toString();
-              });
-
-              ffmpeg.on("exit", (code) => {
-                if (code === 0) resolve();
-                else
-                  reject(
-                    new Error(
-                      `ffmpeg: ${stderr.trim() || `exited with code ${code}`}`,
-                    ),
-                  );
-              });
-              ffmpeg.on("error", reject);
-            });
+            filename = baseName;
           }
 
-          spinner.succeed("HLS download complete.");
-          console.log(chalk.green(`\nDownload complete: ${outputPath}`));
-          return;
-        }
-
-        // Standard single-file download — use our downloader.
-        const writer = new NodeFileWriter(outputPath);
-        const referer = guessReferer(url);
-
-        // Prepare progress bar (started lazily on first progress callback).
-        if (options.progress !== false) {
-          bar = new cliProgress.SingleBar({
-            format:
-              "Downloading [{bar}] {percentage}% | {downloaded_fmt} / {total_fmt}",
-            barCompleteChar: "=",
-            barIncompleteChar: " ",
-            hideCursor: true,
-            fps: 10,
-            stream: process.stderr,
-            noTTYOutput: true,
-            notTTYSchedule: 1000,
-          });
-        }
-
-        // Newline so progress bar gets its own line.
-        process.stderr.write("\n");
-
-        await download({
-          videoUrl,
-          referer,
-          createWriter: async () => writer,
-          onProgress: (downloaded, total) => {
-            if (!bar) return;
-
-            if (!barStarted) {
-              bar.start(total, 0, {
-                downloaded_fmt: formatBytes(0),
-                total_fmt: formatBytes(total),
-              });
-              barStarted = true;
-            }
-
-            bar.update(downloaded, {
-              downloaded_fmt: formatBytes(downloaded),
-              total_fmt: formatBytes(total),
-            });
-          },
+          const outputPath = join(options.outputDir || ".", options.output || filename);
+          return { videoUrl, outputPath, index: i };
         });
 
-        if (bar && barStarted) {
-          bar.stop();
-          process.stderr.write("\n");
+        // Step 5: Download.
+        const isTwitter = isTwitterUrl(url);
+        const showProgress = options.progress !== false;
+
+        if (downloads.length === 1 && showProgress) {
+          // Single download — use SingleBar.
+          await downloadSingle(downloads[0], {
+            ffmpegPath,
+            cookiesFile,
+            cookiesFromBrowser: options.cookiesFromBrowser,
+            isTwitter,
+            url,
+            showProgress,
+          });
+        } else if (downloads.length > 1 && showProgress) {
+          // Multi download — use MultiBar.
+          await downloadMulti(downloads, {
+            ffmpegPath,
+            cookiesFile,
+            cookiesFromBrowser: options.cookiesFromBrowser,
+            isTwitter,
+            url,
+          });
+        } else {
+          // No progress bar.
+          await Promise.all(
+            downloads.map(d =>
+              downloadSingle(d, {
+                ffmpegPath,
+                cookiesFile,
+                cookiesFromBrowser: options.cookiesFromBrowser,
+                isTwitter,
+                url,
+                showProgress: false,
+              }),
+            ),
+          );
         }
 
-        // Wait for rename to complete.
-        await writer.closed();
-
-        console.log(`\nDownload complete: ${outputPath}`);
+        console.log(chalk.green(`\nDownload complete!`));
+        for (const d of downloads) {
+          console.log(chalk.dim(`  ${d.outputPath}`));
+        }
       } catch (err) {
-        if (spinner) spinner.fail(String(err));
-        else console.error(chalk.red(String(err)));
+        console.error(chalk.red(String(err)));
         process.exit(1);
       } finally {
-        // Clean up temp cookies file.
         if (tempCookiesFile) {
           await unlink(tempCookiesFile).catch(() => {});
         }
       }
     },
   );
+
+interface DownloadTask {
+  videoUrl: string;
+  outputPath: string;
+  index: number;
+}
+
+interface DownloadOpts {
+  ffmpegPath: string;
+  cookiesFile?: string;
+  cookiesFromBrowser?: string;
+  isTwitter: boolean;
+  url: string;
+  showProgress?: boolean;
+}
+
+async function downloadSingle(
+  task: DownloadTask,
+  opts: DownloadOpts,
+  bar?: cliProgress.SingleBar,
+): Promise<void> {
+  const { videoUrl, outputPath } = task;
+  const { ffmpegPath, cookiesFile, cookiesFromBrowser, isTwitter, url, showProgress } = opts;
+
+  // HLS download for Twitter.
+  if (isTwitter && (videoUrl.endsWith(".m3u8") || videoUrl.endsWith(".m3u"))) {
+    const { YtDlp } = await import("ytdlp-nodejs");
+    const ytdlp = new YtDlp({ ffmpegPath });
+    const streamOpts: Record<string, unknown> = {};
+    if (cookiesFromBrowser) streamOpts.cookiesFromBrowser = cookiesFromBrowser;
+    if (cookiesFile) streamOpts.cookies = cookiesFile;
+
+    const { createWriteStream } = await import("node:fs");
+    const ws = createWriteStream(outputPath);
+    const origCwd = process.cwd();
+    process.chdir(dirname(outputPath));
+    try {
+      await ytdlp
+        .stream(url, streamOpts)
+        .filter("mergevideo")
+        .quality("highest")
+        .type("mp4")
+        .embedThumbnail()
+        .pipeAsync(ws);
+    } finally {
+      process.chdir(origCwd);
+    }
+    return;
+  }
+
+  // HLS download for non-Twitter.
+  if (!isTwitter && (videoUrl.endsWith(".m3u8") || videoUrl.endsWith(".m3u"))) {
+    const { spawn } = await import("node:child_process");
+    const referer = guessReferer(url);
+    const ffHeaders =
+      `Referer: ${referer}\r\n` +
+      "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36\r\n";
+
+    await new Promise<void>((resolve, reject) => {
+      const ffmpeg = spawn(
+        ffmpegPath,
+        [
+          "-y", "-hide_banner", "-loglevel", "error",
+          "-headers", ffHeaders,
+          "-i", videoUrl,
+          "-c", "copy",
+          "-bsf:a", "aac_adtstoasc",
+          "-f", "mp4",
+          "-movflags", "frag_keyframe+empty_moov",
+          outputPath,
+        ],
+        { stdio: ["ignore", "ignore", "pipe"], cwd: dirname(outputPath) },
+      );
+
+      let stderr = "";
+      ffmpeg.stderr.on("data", (d: Buffer) => { stderr += d.toString(); });
+      ffmpeg.on("exit", (code) => {
+        if (code === 0) resolve();
+        else reject(new Error(`ffmpeg: ${stderr.trim() || `exited with code ${code}`}`));
+      });
+      ffmpeg.on("error", reject);
+    });
+    return;
+  }
+
+  // Direct download.
+  const writer = new NodeFileWriter(outputPath);
+  const referer = guessReferer(url);
+  let barStarted = false;
+
+  await download({
+    videoUrl,
+    referer,
+    createWriter: async () => writer,
+    onProgress: (downloaded, total) => {
+      if (!bar || !showProgress) return;
+      if (!barStarted) {
+        bar.start(total, 0, {
+          downloaded_fmt: formatBytes(0),
+          total_fmt: formatBytes(total),
+        });
+        barStarted = true;
+      }
+      bar.update(downloaded, {
+        downloaded_fmt: formatBytes(downloaded),
+        total_fmt: formatBytes(total),
+      });
+    },
+  });
+
+  if (bar && barStarted) {
+    bar.stop();
+  }
+
+  await writer.closed();
+}
+
+async function downloadMulti(
+  downloads: DownloadTask[],
+  opts: DownloadOpts,
+): Promise<void> {
+  const multibar = new cliProgress.MultiBar({
+    format: "[{bar}] {percentage}% | {filename}",
+    barCompleteChar: "=",
+    barIncompleteChar: " ",
+    hideCursor: true,
+    fps: 10,
+    stream: process.stderr,
+    noTTYOutput: true,
+    notTTYSchedule: 1000,
+  });
+
+  process.stderr.write("\n");
+
+  const label = (t: DownloadTask) => {
+    const name = downloads.length > 1
+      ? `Video ${t.index + 1}`
+      : "Downloading";
+    return name;
+  };
+
+  const bars = downloads.map(d => multibar.create(100, 0, { filename: label(d) }));
+
+  const tasks = downloads.map((d, i) =>
+    downloadSingle(d, opts, bars[i]).catch(err => {
+      console.error(chalk.red(`\n  Error (video ${i + 1}): ${err}`));
+    }),
+  );
+
+  await Promise.all(tasks);
+  multibar.stop();
+}
 
 program.parse();
