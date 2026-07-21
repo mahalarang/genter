@@ -3,6 +3,11 @@ dist
 *.tsbuildinfo
 data
 downloaded
+temp
 .agents
 skills-lock.json
 docs
+*.jpg
+*.mp4
+*.webm
+*.mkv

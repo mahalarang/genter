@@ -189,13 +189,21 @@ program
 
             const { createWriteStream } = await import("node:fs");
             const ws = createWriteStream(outputPath);
-            await ytdlp
-              .stream(url, streamOpts)
-              .filter("mergevideo")
-              .quality("highest")
-              .type("mp4")
-              .embedThumbnail()
-              .pipeAsync(ws);
+            // yt-dlp creates temp files (thumbnails etc) in CWD, 
+            // so change to output dir to avoid littering.
+            const origCwd = process.cwd();
+            process.chdir(dirname(outputPath));
+            try {
+              await ytdlp
+                .stream(url, streamOpts)
+                .filter("mergevideo")
+                .quality("highest")
+                .type("mp4")
+                .embedThumbnail()
+                .pipeAsync(ws);
+            } finally {
+              process.chdir(origCwd);
+            }
           } else {
             // Non-Twitter: use ffmpeg directly (sends Referer, no 403).
             const { spawn } = await import("node:child_process");
@@ -226,7 +234,7 @@ program
                   "frag_keyframe+empty_moov",
                   outputPath,
                 ],
-                { stdio: ["ignore", "ignore", "pipe"] },
+                { stdio: ["ignore", "ignore", "pipe"], cwd: dirname(outputPath) },
               );
 
               let stderr = "";
