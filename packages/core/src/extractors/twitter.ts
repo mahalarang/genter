@@ -99,8 +99,9 @@ export class TwitterExtractor implements Extractor {
 
     if (!urls || urls.length === 0) {
       throw new Error(
-        'No video found in this tweet. The tweet may not contain video, ' +
-          'or it may be age-restricted (use --cookies-from-browser or --cookies).',
+        'No video found in this tweet. It may be age-restricted, ' +
+          'require login, or not contain video. ' +
+          'Try: genter --twitter-auth "auth_token:ct0" <url>'
       );
     }
 

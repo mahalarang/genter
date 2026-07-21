@@ -152,7 +152,15 @@ program
 
         // Step 2: Extract.
         const result = await extractor.extract(url);
-        const { videoUrls, filename: suggestedFilename } = result;
+        const videoUrls = result?.videoUrls;
+        const suggestedFilename = result?.filename;
+
+        if (!videoUrls || videoUrls.length === 0) {
+          throw new Error(
+            'No video found. The tweet may require login or not contain video.\n' +
+            '  Try: genter --twitter-auth "auth_token:ct0" <url>'
+          );
+        }
 
         spinner.succeed(`${videoUrls.length} video(s) found.`);
 
