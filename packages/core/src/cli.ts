@@ -166,8 +166,11 @@ program
           const selected = await checkbox({
             message: "Select videos to download (space to select, enter to confirm):",
             choices,
-            required: true,
           });
+          if (!selected || selected.length === 0) {
+            console.log(chalk.yellow("No video selected. Cancelled."));
+            process.exit(0);
+          }
           selectedUrls = selected.map((i: number) => videoUrls[i]);
         } else {
           selectedUrls = videoUrls;
