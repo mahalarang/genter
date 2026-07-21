@@ -38,7 +38,7 @@ genter https://xpvid.cc/videos/abc123 -d ./videos
 
 | Site | Domains | Notes |
 |---|---|---|
-| XpVid | `xpvid.cc`, `vidbl.ing` | Direct extraction, no auth needed |
+| XpVid | `xpvid.cc`, `vidbl.ing`, `vdy.to` | Direct extraction, no auth needed |
 | Twitter / X | `x.com`, `twitter.com` | Requires auth tokens or browser cookies |
 
 For full usage details, see [packages/core/README.md](./packages/core/README.md).

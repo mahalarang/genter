@@ -7,6 +7,7 @@ import { extractIdFromUrl } from './helpers.js';
  * Recognized domains:
  *   - xpvid.cc
  *   - vidbl.ing    (redirects to xpvid.cc)
+ *   - vdy.to
  *
  * Flow:
  *   1. Parse video ID from the page URL
@@ -16,7 +17,7 @@ import { extractIdFromUrl } from './helpers.js';
  */
 
 /** Domains that serve xpvid.cc content (either directly or via redirect). */
-const KNOWN_DOMAINS = ['xpvid.cc', 'vidbl.ing'];
+const KNOWN_DOMAINS = ['xpvid.cc', 'vidbl.ing', 'vdy.to'];
 
 export class XpvidExtractor implements Extractor {
   canHandle(url: string): boolean {
@@ -40,7 +41,8 @@ export class XpvidExtractor implements Extractor {
 
     // Referer only needed for direct requests (not through proxy).
     if (typeof window === 'undefined') {
-      fetchHeaders['Referer'] = 'https://xpvid.cc/';
+      const origin = new URL(pageUrl).origin;
+      fetchHeaders['Referer'] = origin + '/';
     }
 
     const response = await fetch(fetchUrl, { headers: fetchHeaders });

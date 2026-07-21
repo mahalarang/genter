@@ -55,7 +55,7 @@ genter --cookies-from-browser chrome https://x.com/user/status/789
 
 | Site | Domains |
 |---|---|
-| XpVid | `xpvid.cc`, `vidbl.ing` |
+| XpVid | `xpvid.cc`, `vidbl.ing`, `vdy.to` |
 | Twitter / X | `x.com`, `twitter.com` |
 
 ### Twitter/X setup
