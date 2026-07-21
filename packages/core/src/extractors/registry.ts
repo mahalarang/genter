@@ -1,5 +1,6 @@
 import type { Extractor } from "../extractor.js";
 import { XpvidExtractor } from "./xpvid.js";
+import { VdytoExtractor } from "./vdyto.js";
 
 /**
  * Registry of all available extractors.
@@ -7,7 +8,7 @@ import { XpvidExtractor } from "./xpvid.js";
  *
  * Priority: extractors earlier in the array take precedence.
  */
-const extractors: Extractor[] = [new XpvidExtractor()];
+const extractors: Extractor[] = [new VdytoExtractor(), new XpvidExtractor()];
 
 /**
  * Finds the first extractor that can handle the given URL.
