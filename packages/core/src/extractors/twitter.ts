@@ -1,4 +1,5 @@
 import { YtDlp } from "ytdlp-nodejs";
+import type { VideoInfo, PlaylistInfo, ArgsOptions } from "ytdlp-nodejs";
 import type { Extractor, ExtractResult } from "../extractor.js";
 
 /**
@@ -83,7 +84,7 @@ export class TwitterExtractor implements Extractor {
 
     // Yt-dlp extraction.
     const ytdlp = new YtDlp();
-    const opts: Record<string, unknown> = {};
+    const opts: ArgsOptions = {};
 
     if (this.auth?.cookies) {
       opts.cookies = this.auth.cookies;
@@ -93,23 +94,22 @@ export class TwitterExtractor implements Extractor {
     }
 
     // Try getInfoAsync first — handles multi-video tweets as playlists.
-    const info = await ytdlp.getInfoAsync(pageUrl, opts);
+    const info = await ytdlp.getInfoAsync<"playlist">(pageUrl, opts);
 
-    // Multi-video tweet: entries is a playlist of individual videos.
-    const entries = (info as unknown as Record<string, unknown>)?.entries as Array<Record<string, unknown>> | undefined;
-    if (entries && entries.length > 0) {
+    // Multi-video tweet: PlaylistInfo with entries.
+    if (info._type === "playlist" && info.entries && info.entries.length > 0) {
       const urls: string[] = [];
       const filenames: string[] = [];
 
-      for (const entry of entries) {
+      for (const entry of info.entries) {
         // Extract HLS video URL from requested_downloads or formats.
-        const dl = (entry.requested_downloads as Array<Record<string, unknown>>)?.[0];
-        const videoFormat = (dl?.requested_formats as Array<Record<string, unknown>>)?.[0] || (entry.formats as Array<Record<string, unknown>>)?.[0];
+        const dl = entry.requested_downloads?.[0] as Record<string, unknown> | undefined;
+        const requestedFormats = dl?.requested_formats as Array<Record<string, unknown>> | undefined;
+        const videoFormat = requestedFormats?.[0] || entry.formats?.[0];
         if (videoFormat?.url) {
           urls.push(videoFormat.url as string);
         }
 
-        // Use the auto-generated filename from yt-dlp.
         if (dl?.filename) {
           filenames.push(dl.filename as string);
         }
